@@ -1,0 +1,12 @@
+apiVersion: waofed.bitmedia.co.jp/v1beta1
+kind: Estimator
+metadata:
+  labels:
+    app.kubernetes.io/name: estimator
+    app.kubernetes.io/instance: estimator-sample
+    app.kubernetes.io/part-of: wao-estimator
+    app.kubernetes.io/managed-by: kustomize
+    app.kubernetes.io/created-by: wao-estimator
+  name: estimator-sample
+spec:
+  # TODO(user): Add fields here

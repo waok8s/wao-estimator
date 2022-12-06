@@ -3,4 +3,14 @@ layout:
 - go.kubebuilder.io/v3
 projectName: wao-estimator
 repo: github.com/Nedopro2022/wao-estimator
+resources:
+- api:
+    crdVersion: v1
+    namespaced: true
+  controller: true
+  domain: bitmedia.co.jp
+  group: waofed
+  kind: Estimator
+  path: github.com/Nedopro2022/wao-estimator/api/v1beta1
+  version: v1beta1
 version: "3"
