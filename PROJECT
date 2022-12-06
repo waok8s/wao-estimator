@@ -1,0 +1,6 @@
+domain: bitmedia.co.jp
+layout:
+- go.kubebuilder.io/v3
+projectName: wao-estimator
+repo: github.com/Nedopro2022/wao-estimator
+version: "3"
