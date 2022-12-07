@@ -1,0 +1,96 @@
+openapi: 3.1.0
+info:
+  title: "WAO Estimator"
+  description: ""
+  version: 0.1.0
+  termsOfService: https://github.com/Nedopro2022/wao-estimator
+  contact:
+    url: "https://github.com/Nedopro2022/wao-estimator/issues"
+  license:
+    name: "Apache-2.0"
+    url: "https://github.com/Nedopro2022/wao-estimator/blob/main/LICENSE"
+servers:
+  - url: ""
+tags:
+  - name: Estimator
+    description: ""
+paths:
+  /namespaces/{namespace}/estimators/{estimator}/resources/powerconsumption:
+    post:
+      tags:
+        - Estimator
+      summary: Send a power consumption estimate request.
+      security:
+        - apiKeyAuth: []
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/PowerConsumption"
+      responses:
+        "200":
+          description: Estimation completed successfully.
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/PowerConsumption"
+        "400":
+          description: Invalid PowerCunsumption request supplied.
+        "401":
+          description: Unauthorized.
+        "404":
+          description: Estimator not found.
+        "500":
+          description: Unable to operate.
+    parameters:
+      - name: namespace
+        in: path
+        description: Kubernetes namespace
+        required: true
+        schema:
+          type: string
+          example: default
+      - name: estimator
+        in: path
+        description: Estimator name
+        required: true
+        schema:
+          type: string
+          example: default
+components:
+  securitySchemes:
+    apiKeyAuth:
+      type: apiKey
+      in: header
+      name: X-API-KEY
+  schemas:
+    PowerConsumption:
+      type: object
+      required:
+        - cpu_milli
+        - num_workload
+      properties:
+        cpu_milli:
+          type: integer
+          examples:
+            - 0
+            - 500
+            - 2000
+          description: The amount of CPUs required by each workload.
+        num_workload:
+          type: integer
+          examples:
+            - 0
+            - 1
+            - 15
+          description: The amount of workloads have to be allocated.
+        watt_increase:
+          type: array
+          items:
+            type: integer
+          examples:
+            - []
+            - [5]
+            - [5, 10, 15, 20, 15]
+          description: The estimated increase in power cunsumption for each workload.
