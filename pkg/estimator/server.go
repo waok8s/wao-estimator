@@ -6,6 +6,7 @@ import (
 	"net/http"
 
 	middleware "github.com/deepmap/oapi-codegen/pkg/chi-middleware"
+	"github.com/getkin/kin-openapi/openapi3filter"
 	"github.com/go-chi/chi/v5"
 
 	"github.com/Nedopro2022/wao-estimator/pkg/estimator/api"
@@ -39,17 +40,26 @@ func (s *Server) PostNamespacesNamespaceEstimatorsEstimatorResourcesPowerconsump
 }
 
 func (s *Server) Handler(middlewares ...func(http.Handler) http.Handler) (http.Handler, error) {
-	swagger, err := api.GetSwagger()
+	return s.HandlerWithAuthFn(openapi3filter.NoopAuthenticationFunc, middlewares...)
+}
+
+func (s *Server) HandlerWithAuthFn(authFn openapi3filter.AuthenticationFunc, middlewares ...func(http.Handler) http.Handler) (http.Handler, error) {
+	spec, err := api.GetSwagger()
 	if err != nil {
 		return nil, err
 	}
-	swagger.Servers = nil // clear servers in the spec
+	spec.Servers = nil // clear servers in the spec
 
 	h := api.NewStrictHandler(s, nil)
 
 	r := chi.NewRouter()
 	r.Use(middlewares...)
-	r.Use(middleware.OapiRequestValidator(swagger))
-
+	r.Use(middleware.OapiRequestValidatorWithOptions(
+		spec,
+		&middleware.Options{
+			Options: openapi3filter.Options{
+				AuthenticationFunc: authFn,
+			},
+		}))
 	return api.HandlerFromMux(h, r), nil
 }
