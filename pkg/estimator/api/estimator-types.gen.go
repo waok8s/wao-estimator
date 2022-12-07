@@ -12,12 +12,12 @@ type PowerConsumption struct {
 	// CpuMilli The amount of CPUs required by each workload.
 	CpuMilli int `json:"cpu_milli"`
 
-	// NumWorkload The amount of workloads have to be allocated.
-	NumWorkload int `json:"num_workload"`
+	// NumWorkloads The amount of workloads have to be allocated.
+	NumWorkloads int `json:"num_workloads"`
 
 	// WattIncrease The estimated increase in power cunsumption for each workload.
 	WattIncrease *[]int `json:"watt_increase,omitempty"`
 }
 
-// PostNamespacesNamespaceEstimatorsEstimatorResourcesPowerconsumptionJSONRequestBody defines body for PostNamespacesNamespaceEstimatorsEstimatorResourcesPowerconsumption for application/json ContentType.
-type PostNamespacesNamespaceEstimatorsEstimatorResourcesPowerconsumptionJSONRequestBody = PowerConsumption
+// PostNamespacesNsEstimatorsNameValuesPowerconsumptionJSONRequestBody defines body for PostNamespacesNsEstimatorsNameValuesPowerconsumption for application/json ContentType.
+type PostNamespacesNsEstimatorsNameValuesPowerconsumptionJSONRequestBody = PowerConsumption

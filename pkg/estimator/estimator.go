@@ -21,8 +21,8 @@ func NewEstimator() *Estimator {
 	return &Estimator{}
 }
 
-func (e *Estimator) EstimatePowerConsumption(ctx context.Context, namespace, estimator string, cpuMilli, numWorkload int) (*[]int, error) {
-	var wattIncrease []int
+func (e *Estimator) EstimatePowerConsumption(ctx context.Context, namespace, estimator string, cpuMilli, numWorkloads int) (*[]int, error) {
+	wattIncrease := make([]int, numWorkloads)
 	// TODO
 	return &wattIncrease, nil
 }

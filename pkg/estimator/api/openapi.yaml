@@ -15,7 +15,7 @@ tags:
   - name: Estimator
     description: ""
 paths:
-  /namespaces/{namespace}/estimators/{estimator}/resources/powerconsumption:
+  /namespaces/{ns}/estimators/{name}/values/powerconsumption:
     post:
       tags:
         - Estimator
@@ -44,16 +44,16 @@ paths:
         "500":
           description: Unable to operate.
     parameters:
-      - name: namespace
+      - name: ns
         in: path
-        description: Kubernetes namespace
+        description: Namespace that the Estimator resource is deployed.
         required: true
         schema:
           type: string
           example: default
-      - name: estimator
+      - name: name
         in: path
-        description: Estimator name
+        description: Name of the Estimator resource.
         required: true
         schema:
           type: string
@@ -69,7 +69,7 @@ components:
       type: object
       required:
         - cpu_milli
-        - num_workload
+        - num_workloads
       properties:
         cpu_milli:
           type: integer
@@ -78,7 +78,7 @@ components:
             - 500
             - 2000
           description: The amount of CPUs required by each workload.
-        num_workload:
+        num_workloads:
           type: integer
           examples:
             - 0

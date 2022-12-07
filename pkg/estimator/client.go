@@ -23,13 +23,13 @@ func NewClient(server string, estimatorNamespace, estimatorName string, opts ...
 	return &ec, nil
 }
 
-func (c *Client) EstimatePowerConsumption(ctx context.Context, cpuMilli, numWorkload int) (*api.PowerConsumption, error) {
-	body := api.PostNamespacesNamespaceEstimatorsEstimatorResourcesPowerconsumptionJSONRequestBody{
+func (c *Client) EstimatePowerConsumption(ctx context.Context, cpuMilli, numWorkloads int) (*api.PowerConsumption, error) {
+	body := api.PostNamespacesNsEstimatorsNameValuesPowerconsumptionJSONRequestBody{
 		CpuMilli:     cpuMilli,
-		NumWorkload:  numWorkload,
+		NumWorkloads: numWorkloads,
 		WattIncrease: nil,
 	}
-	resp, err := c.c.PostNamespacesNamespaceEstimatorsEstimatorResourcesPowerconsumptionWithResponse(ctx, c.e.Namespace, c.e.Name, body)
+	resp, err := c.c.PostNamespacesNsEstimatorsNameValuesPowerconsumptionWithResponse(ctx, c.e.Namespace, c.e.Name, body)
 	if err != nil {
 		return nil, err
 	}

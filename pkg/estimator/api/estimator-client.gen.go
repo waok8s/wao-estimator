@@ -89,14 +89,14 @@ func WithRequestEditorFn(fn RequestEditorFn) ClientOption {
 
 // The interface specification for the client above.
 type ClientInterface interface {
-	// PostNamespacesNamespaceEstimatorsEstimatorResourcesPowerconsumption request with any body
-	PostNamespacesNamespaceEstimatorsEstimatorResourcesPowerconsumptionWithBody(ctx context.Context, namespace string, estimator string, contentType string, body io.Reader, reqEditors ...RequestEditorFn) (*http.Response, error)
+	// PostNamespacesNsEstimatorsNameValuesPowerconsumption request with any body
+	PostNamespacesNsEstimatorsNameValuesPowerconsumptionWithBody(ctx context.Context, ns string, name string, contentType string, body io.Reader, reqEditors ...RequestEditorFn) (*http.Response, error)
 
-	PostNamespacesNamespaceEstimatorsEstimatorResourcesPowerconsumption(ctx context.Context, namespace string, estimator string, body PostNamespacesNamespaceEstimatorsEstimatorResourcesPowerconsumptionJSONRequestBody, reqEditors ...RequestEditorFn) (*http.Response, error)
+	PostNamespacesNsEstimatorsNameValuesPowerconsumption(ctx context.Context, ns string, name string, body PostNamespacesNsEstimatorsNameValuesPowerconsumptionJSONRequestBody, reqEditors ...RequestEditorFn) (*http.Response, error)
 }
 
-func (c *Client) PostNamespacesNamespaceEstimatorsEstimatorResourcesPowerconsumptionWithBody(ctx context.Context, namespace string, estimator string, contentType string, body io.Reader, reqEditors ...RequestEditorFn) (*http.Response, error) {
-	req, err := NewPostNamespacesNamespaceEstimatorsEstimatorResourcesPowerconsumptionRequestWithBody(c.Server, namespace, estimator, contentType, body)
+func (c *Client) PostNamespacesNsEstimatorsNameValuesPowerconsumptionWithBody(ctx context.Context, ns string, name string, contentType string, body io.Reader, reqEditors ...RequestEditorFn) (*http.Response, error) {
+	req, err := NewPostNamespacesNsEstimatorsNameValuesPowerconsumptionRequestWithBody(c.Server, ns, name, contentType, body)
 	if err != nil {
 		return nil, err
 	}
@@ -107,8 +107,8 @@ func (c *Client) PostNamespacesNamespaceEstimatorsEstimatorResourcesPowerconsump
 	return c.Client.Do(req)
 }
 
-func (c *Client) PostNamespacesNamespaceEstimatorsEstimatorResourcesPowerconsumption(ctx context.Context, namespace string, estimator string, body PostNamespacesNamespaceEstimatorsEstimatorResourcesPowerconsumptionJSONRequestBody, reqEditors ...RequestEditorFn) (*http.Response, error) {
-	req, err := NewPostNamespacesNamespaceEstimatorsEstimatorResourcesPowerconsumptionRequest(c.Server, namespace, estimator, body)
+func (c *Client) PostNamespacesNsEstimatorsNameValuesPowerconsumption(ctx context.Context, ns string, name string, body PostNamespacesNsEstimatorsNameValuesPowerconsumptionJSONRequestBody, reqEditors ...RequestEditorFn) (*http.Response, error) {
+	req, err := NewPostNamespacesNsEstimatorsNameValuesPowerconsumptionRequest(c.Server, ns, name, body)
 	if err != nil {
 		return nil, err
 	}
@@ -119,31 +119,31 @@ func (c *Client) PostNamespacesNamespaceEstimatorsEstimatorResourcesPowerconsump
 	return c.Client.Do(req)
 }
 
-// NewPostNamespacesNamespaceEstimatorsEstimatorResourcesPowerconsumptionRequest calls the generic PostNamespacesNamespaceEstimatorsEstimatorResourcesPowerconsumption builder with application/json body
-func NewPostNamespacesNamespaceEstimatorsEstimatorResourcesPowerconsumptionRequest(server string, namespace string, estimator string, body PostNamespacesNamespaceEstimatorsEstimatorResourcesPowerconsumptionJSONRequestBody) (*http.Request, error) {
+// NewPostNamespacesNsEstimatorsNameValuesPowerconsumptionRequest calls the generic PostNamespacesNsEstimatorsNameValuesPowerconsumption builder with application/json body
+func NewPostNamespacesNsEstimatorsNameValuesPowerconsumptionRequest(server string, ns string, name string, body PostNamespacesNsEstimatorsNameValuesPowerconsumptionJSONRequestBody) (*http.Request, error) {
 	var bodyReader io.Reader
 	buf, err := json.Marshal(body)
 	if err != nil {
 		return nil, err
 	}
 	bodyReader = bytes.NewReader(buf)
-	return NewPostNamespacesNamespaceEstimatorsEstimatorResourcesPowerconsumptionRequestWithBody(server, namespace, estimator, "application/json", bodyReader)
+	return NewPostNamespacesNsEstimatorsNameValuesPowerconsumptionRequestWithBody(server, ns, name, "application/json", bodyReader)
 }
 
-// NewPostNamespacesNamespaceEstimatorsEstimatorResourcesPowerconsumptionRequestWithBody generates requests for PostNamespacesNamespaceEstimatorsEstimatorResourcesPowerconsumption with any type of body
-func NewPostNamespacesNamespaceEstimatorsEstimatorResourcesPowerconsumptionRequestWithBody(server string, namespace string, estimator string, contentType string, body io.Reader) (*http.Request, error) {
+// NewPostNamespacesNsEstimatorsNameValuesPowerconsumptionRequestWithBody generates requests for PostNamespacesNsEstimatorsNameValuesPowerconsumption with any type of body
+func NewPostNamespacesNsEstimatorsNameValuesPowerconsumptionRequestWithBody(server string, ns string, name string, contentType string, body io.Reader) (*http.Request, error) {
 	var err error
 
 	var pathParam0 string
 
-	pathParam0, err = runtime.StyleParamWithLocation("simple", false, "namespace", runtime.ParamLocationPath, namespace)
+	pathParam0, err = runtime.StyleParamWithLocation("simple", false, "ns", runtime.ParamLocationPath, ns)
 	if err != nil {
 		return nil, err
 	}
 
 	var pathParam1 string
 
-	pathParam1, err = runtime.StyleParamWithLocation("simple", false, "estimator", runtime.ParamLocationPath, estimator)
+	pathParam1, err = runtime.StyleParamWithLocation("simple", false, "name", runtime.ParamLocationPath, name)
 	if err != nil {
 		return nil, err
 	}
@@ -153,7 +153,7 @@ func NewPostNamespacesNamespaceEstimatorsEstimatorResourcesPowerconsumptionReque
 		return nil, err
 	}
 
-	operationPath := fmt.Sprintf("/namespaces/%s/estimators/%s/resources/powerconsumption", pathParam0, pathParam1)
+	operationPath := fmt.Sprintf("/namespaces/%s/estimators/%s/values/powerconsumption", pathParam0, pathParam1)
 	if operationPath[0] == '/' {
 		operationPath = "." + operationPath
 	}
@@ -216,20 +216,20 @@ func WithBaseURL(baseURL string) ClientOption {
 
 // ClientWithResponsesInterface is the interface specification for the client with responses above.
 type ClientWithResponsesInterface interface {
-	// PostNamespacesNamespaceEstimatorsEstimatorResourcesPowerconsumption request with any body
-	PostNamespacesNamespaceEstimatorsEstimatorResourcesPowerconsumptionWithBodyWithResponse(ctx context.Context, namespace string, estimator string, contentType string, body io.Reader, reqEditors ...RequestEditorFn) (*PostNamespacesNamespaceEstimatorsEstimatorResourcesPowerconsumptionResponse, error)
+	// PostNamespacesNsEstimatorsNameValuesPowerconsumption request with any body
+	PostNamespacesNsEstimatorsNameValuesPowerconsumptionWithBodyWithResponse(ctx context.Context, ns string, name string, contentType string, body io.Reader, reqEditors ...RequestEditorFn) (*PostNamespacesNsEstimatorsNameValuesPowerconsumptionResponse, error)
 
-	PostNamespacesNamespaceEstimatorsEstimatorResourcesPowerconsumptionWithResponse(ctx context.Context, namespace string, estimator string, body PostNamespacesNamespaceEstimatorsEstimatorResourcesPowerconsumptionJSONRequestBody, reqEditors ...RequestEditorFn) (*PostNamespacesNamespaceEstimatorsEstimatorResourcesPowerconsumptionResponse, error)
+	PostNamespacesNsEstimatorsNameValuesPowerconsumptionWithResponse(ctx context.Context, ns string, name string, body PostNamespacesNsEstimatorsNameValuesPowerconsumptionJSONRequestBody, reqEditors ...RequestEditorFn) (*PostNamespacesNsEstimatorsNameValuesPowerconsumptionResponse, error)
 }
 
-type PostNamespacesNamespaceEstimatorsEstimatorResourcesPowerconsumptionResponse struct {
+type PostNamespacesNsEstimatorsNameValuesPowerconsumptionResponse struct {
 	Body         []byte
 	HTTPResponse *http.Response
 	JSON200      *PowerConsumption
 }
 
 // Status returns HTTPResponse.Status
-func (r PostNamespacesNamespaceEstimatorsEstimatorResourcesPowerconsumptionResponse) Status() string {
+func (r PostNamespacesNsEstimatorsNameValuesPowerconsumptionResponse) Status() string {
 	if r.HTTPResponse != nil {
 		return r.HTTPResponse.Status
 	}
@@ -237,39 +237,39 @@ func (r PostNamespacesNamespaceEstimatorsEstimatorResourcesPowerconsumptionRespo
 }
 
 // StatusCode returns HTTPResponse.StatusCode
-func (r PostNamespacesNamespaceEstimatorsEstimatorResourcesPowerconsumptionResponse) StatusCode() int {
+func (r PostNamespacesNsEstimatorsNameValuesPowerconsumptionResponse) StatusCode() int {
 	if r.HTTPResponse != nil {
 		return r.HTTPResponse.StatusCode
 	}
 	return 0
 }
 
-// PostNamespacesNamespaceEstimatorsEstimatorResourcesPowerconsumptionWithBodyWithResponse request with arbitrary body returning *PostNamespacesNamespaceEstimatorsEstimatorResourcesPowerconsumptionResponse
-func (c *ClientWithResponses) PostNamespacesNamespaceEstimatorsEstimatorResourcesPowerconsumptionWithBodyWithResponse(ctx context.Context, namespace string, estimator string, contentType string, body io.Reader, reqEditors ...RequestEditorFn) (*PostNamespacesNamespaceEstimatorsEstimatorResourcesPowerconsumptionResponse, error) {
-	rsp, err := c.PostNamespacesNamespaceEstimatorsEstimatorResourcesPowerconsumptionWithBody(ctx, namespace, estimator, contentType, body, reqEditors...)
+// PostNamespacesNsEstimatorsNameValuesPowerconsumptionWithBodyWithResponse request with arbitrary body returning *PostNamespacesNsEstimatorsNameValuesPowerconsumptionResponse
+func (c *ClientWithResponses) PostNamespacesNsEstimatorsNameValuesPowerconsumptionWithBodyWithResponse(ctx context.Context, ns string, name string, contentType string, body io.Reader, reqEditors ...RequestEditorFn) (*PostNamespacesNsEstimatorsNameValuesPowerconsumptionResponse, error) {
+	rsp, err := c.PostNamespacesNsEstimatorsNameValuesPowerconsumptionWithBody(ctx, ns, name, contentType, body, reqEditors...)
 	if err != nil {
 		return nil, err
 	}
-	return ParsePostNamespacesNamespaceEstimatorsEstimatorResourcesPowerconsumptionResponse(rsp)
+	return ParsePostNamespacesNsEstimatorsNameValuesPowerconsumptionResponse(rsp)
 }
 
-func (c *ClientWithResponses) PostNamespacesNamespaceEstimatorsEstimatorResourcesPowerconsumptionWithResponse(ctx context.Context, namespace string, estimator string, body PostNamespacesNamespaceEstimatorsEstimatorResourcesPowerconsumptionJSONRequestBody, reqEditors ...RequestEditorFn) (*PostNamespacesNamespaceEstimatorsEstimatorResourcesPowerconsumptionResponse, error) {
-	rsp, err := c.PostNamespacesNamespaceEstimatorsEstimatorResourcesPowerconsumption(ctx, namespace, estimator, body, reqEditors...)
+func (c *ClientWithResponses) PostNamespacesNsEstimatorsNameValuesPowerconsumptionWithResponse(ctx context.Context, ns string, name string, body PostNamespacesNsEstimatorsNameValuesPowerconsumptionJSONRequestBody, reqEditors ...RequestEditorFn) (*PostNamespacesNsEstimatorsNameValuesPowerconsumptionResponse, error) {
+	rsp, err := c.PostNamespacesNsEstimatorsNameValuesPowerconsumption(ctx, ns, name, body, reqEditors...)
 	if err != nil {
 		return nil, err
 	}
-	return ParsePostNamespacesNamespaceEstimatorsEstimatorResourcesPowerconsumptionResponse(rsp)
+	return ParsePostNamespacesNsEstimatorsNameValuesPowerconsumptionResponse(rsp)
 }
 
-// ParsePostNamespacesNamespaceEstimatorsEstimatorResourcesPowerconsumptionResponse parses an HTTP response from a PostNamespacesNamespaceEstimatorsEstimatorResourcesPowerconsumptionWithResponse call
-func ParsePostNamespacesNamespaceEstimatorsEstimatorResourcesPowerconsumptionResponse(rsp *http.Response) (*PostNamespacesNamespaceEstimatorsEstimatorResourcesPowerconsumptionResponse, error) {
+// ParsePostNamespacesNsEstimatorsNameValuesPowerconsumptionResponse parses an HTTP response from a PostNamespacesNsEstimatorsNameValuesPowerconsumptionWithResponse call
+func ParsePostNamespacesNsEstimatorsNameValuesPowerconsumptionResponse(rsp *http.Response) (*PostNamespacesNsEstimatorsNameValuesPowerconsumptionResponse, error) {
 	bodyBytes, err := io.ReadAll(rsp.Body)
 	defer func() { _ = rsp.Body.Close() }()
 	if err != nil {
 		return nil, err
 	}
 
-	response := &PostNamespacesNamespaceEstimatorsEstimatorResourcesPowerconsumptionResponse{
+	response := &PostNamespacesNsEstimatorsNameValuesPowerconsumptionResponse{
 		Body:         bodyBytes,
 		HTTPResponse: rsp,
 	}

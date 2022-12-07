@@ -16,8 +16,8 @@ import (
 // ServerInterface represents all server handlers.
 type ServerInterface interface {
 	// Send a power consumption estimate request.
-	// (POST /namespaces/{namespace}/estimators/{estimator}/resources/powerconsumption)
-	PostNamespacesNamespaceEstimatorsEstimatorResourcesPowerconsumption(w http.ResponseWriter, r *http.Request, namespace string, estimator string)
+	// (POST /namespaces/{ns}/estimators/{name}/values/powerconsumption)
+	PostNamespacesNsEstimatorsNameValuesPowerconsumption(w http.ResponseWriter, r *http.Request, ns string, name string)
 }
 
 // ServerInterfaceWrapper converts contexts to parameters.
@@ -29,34 +29,34 @@ type ServerInterfaceWrapper struct {
 
 type MiddlewareFunc func(http.Handler) http.Handler
 
-// PostNamespacesNamespaceEstimatorsEstimatorResourcesPowerconsumption operation middleware
-func (siw *ServerInterfaceWrapper) PostNamespacesNamespaceEstimatorsEstimatorResourcesPowerconsumption(w http.ResponseWriter, r *http.Request) {
+// PostNamespacesNsEstimatorsNameValuesPowerconsumption operation middleware
+func (siw *ServerInterfaceWrapper) PostNamespacesNsEstimatorsNameValuesPowerconsumption(w http.ResponseWriter, r *http.Request) {
 	ctx := r.Context()
 
 	var err error
 
-	// ------------- Path parameter "namespace" -------------
-	var namespace string
+	// ------------- Path parameter "ns" -------------
+	var ns string
 
-	err = runtime.BindStyledParameterWithLocation("simple", false, "namespace", runtime.ParamLocationPath, chi.URLParam(r, "namespace"), &namespace)
+	err = runtime.BindStyledParameterWithLocation("simple", false, "ns", runtime.ParamLocationPath, chi.URLParam(r, "ns"), &ns)
 	if err != nil {
-		siw.ErrorHandlerFunc(w, r, &InvalidParamFormatError{ParamName: "namespace", Err: err})
+		siw.ErrorHandlerFunc(w, r, &InvalidParamFormatError{ParamName: "ns", Err: err})
 		return
 	}
 
-	// ------------- Path parameter "estimator" -------------
-	var estimator string
+	// ------------- Path parameter "name" -------------
+	var name string
 
-	err = runtime.BindStyledParameterWithLocation("simple", false, "estimator", runtime.ParamLocationPath, chi.URLParam(r, "estimator"), &estimator)
+	err = runtime.BindStyledParameterWithLocation("simple", false, "name", runtime.ParamLocationPath, chi.URLParam(r, "name"), &name)
 	if err != nil {
-		siw.ErrorHandlerFunc(w, r, &InvalidParamFormatError{ParamName: "estimator", Err: err})
+		siw.ErrorHandlerFunc(w, r, &InvalidParamFormatError{ParamName: "name", Err: err})
 		return
 	}
 
 	ctx = context.WithValue(ctx, ApiKeyAuthScopes, []string{""})
 
 	var handler http.Handler = http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
-		siw.Handler.PostNamespacesNamespaceEstimatorsEstimatorResourcesPowerconsumption(w, r, namespace, estimator)
+		siw.Handler.PostNamespacesNsEstimatorsNameValuesPowerconsumption(w, r, ns, name)
 	})
 
 	for i := len(siw.HandlerMiddlewares) - 1; i >= 0; i-- {
@@ -180,59 +180,59 @@ func HandlerWithOptions(si ServerInterface, options ChiServerOptions) http.Handl
 	}
 
 	r.Group(func(r chi.Router) {
-		r.Post(options.BaseURL+"/namespaces/{namespace}/estimators/{estimator}/resources/powerconsumption", wrapper.PostNamespacesNamespaceEstimatorsEstimatorResourcesPowerconsumption)
+		r.Post(options.BaseURL+"/namespaces/{ns}/estimators/{name}/values/powerconsumption", wrapper.PostNamespacesNsEstimatorsNameValuesPowerconsumption)
 	})
 
 	return r
 }
 
-type PostNamespacesNamespaceEstimatorsEstimatorResourcesPowerconsumptionRequestObject struct {
-	Namespace string `json:"namespace"`
-	Estimator string `json:"estimator"`
-	Body      *PostNamespacesNamespaceEstimatorsEstimatorResourcesPowerconsumptionJSONRequestBody
+type PostNamespacesNsEstimatorsNameValuesPowerconsumptionRequestObject struct {
+	Ns   string `json:"ns"`
+	Name string `json:"name"`
+	Body *PostNamespacesNsEstimatorsNameValuesPowerconsumptionJSONRequestBody
 }
 
-type PostNamespacesNamespaceEstimatorsEstimatorResourcesPowerconsumptionResponseObject interface {
-	VisitPostNamespacesNamespaceEstimatorsEstimatorResourcesPowerconsumptionResponse(w http.ResponseWriter) error
+type PostNamespacesNsEstimatorsNameValuesPowerconsumptionResponseObject interface {
+	VisitPostNamespacesNsEstimatorsNameValuesPowerconsumptionResponse(w http.ResponseWriter) error
 }
 
-type PostNamespacesNamespaceEstimatorsEstimatorResourcesPowerconsumption200JSONResponse PowerConsumption
+type PostNamespacesNsEstimatorsNameValuesPowerconsumption200JSONResponse PowerConsumption
 
-func (response PostNamespacesNamespaceEstimatorsEstimatorResourcesPowerconsumption200JSONResponse) VisitPostNamespacesNamespaceEstimatorsEstimatorResourcesPowerconsumptionResponse(w http.ResponseWriter) error {
+func (response PostNamespacesNsEstimatorsNameValuesPowerconsumption200JSONResponse) VisitPostNamespacesNsEstimatorsNameValuesPowerconsumptionResponse(w http.ResponseWriter) error {
 	w.Header().Set("Content-Type", "application/json")
 	w.WriteHeader(200)
 
 	return json.NewEncoder(w).Encode(response)
 }
 
-type PostNamespacesNamespaceEstimatorsEstimatorResourcesPowerconsumption400Response struct {
+type PostNamespacesNsEstimatorsNameValuesPowerconsumption400Response struct {
 }
 
-func (response PostNamespacesNamespaceEstimatorsEstimatorResourcesPowerconsumption400Response) VisitPostNamespacesNamespaceEstimatorsEstimatorResourcesPowerconsumptionResponse(w http.ResponseWriter) error {
+func (response PostNamespacesNsEstimatorsNameValuesPowerconsumption400Response) VisitPostNamespacesNsEstimatorsNameValuesPowerconsumptionResponse(w http.ResponseWriter) error {
 	w.WriteHeader(400)
 	return nil
 }
 
-type PostNamespacesNamespaceEstimatorsEstimatorResourcesPowerconsumption401Response struct {
+type PostNamespacesNsEstimatorsNameValuesPowerconsumption401Response struct {
 }
 
-func (response PostNamespacesNamespaceEstimatorsEstimatorResourcesPowerconsumption401Response) VisitPostNamespacesNamespaceEstimatorsEstimatorResourcesPowerconsumptionResponse(w http.ResponseWriter) error {
+func (response PostNamespacesNsEstimatorsNameValuesPowerconsumption401Response) VisitPostNamespacesNsEstimatorsNameValuesPowerconsumptionResponse(w http.ResponseWriter) error {
 	w.WriteHeader(401)
 	return nil
 }
 
-type PostNamespacesNamespaceEstimatorsEstimatorResourcesPowerconsumption404Response struct {
+type PostNamespacesNsEstimatorsNameValuesPowerconsumption404Response struct {
 }
 
-func (response PostNamespacesNamespaceEstimatorsEstimatorResourcesPowerconsumption404Response) VisitPostNamespacesNamespaceEstimatorsEstimatorResourcesPowerconsumptionResponse(w http.ResponseWriter) error {
+func (response PostNamespacesNsEstimatorsNameValuesPowerconsumption404Response) VisitPostNamespacesNsEstimatorsNameValuesPowerconsumptionResponse(w http.ResponseWriter) error {
 	w.WriteHeader(404)
 	return nil
 }
 
-type PostNamespacesNamespaceEstimatorsEstimatorResourcesPowerconsumption500Response struct {
+type PostNamespacesNsEstimatorsNameValuesPowerconsumption500Response struct {
 }
 
-func (response PostNamespacesNamespaceEstimatorsEstimatorResourcesPowerconsumption500Response) VisitPostNamespacesNamespaceEstimatorsEstimatorResourcesPowerconsumptionResponse(w http.ResponseWriter) error {
+func (response PostNamespacesNsEstimatorsNameValuesPowerconsumption500Response) VisitPostNamespacesNsEstimatorsNameValuesPowerconsumptionResponse(w http.ResponseWriter) error {
 	w.WriteHeader(500)
 	return nil
 }
@@ -240,8 +240,8 @@ func (response PostNamespacesNamespaceEstimatorsEstimatorResourcesPowerconsumpti
 // StrictServerInterface represents all server handlers.
 type StrictServerInterface interface {
 	// Send a power consumption estimate request.
-	// (POST /namespaces/{namespace}/estimators/{estimator}/resources/powerconsumption)
-	PostNamespacesNamespaceEstimatorsEstimatorResourcesPowerconsumption(ctx context.Context, request PostNamespacesNamespaceEstimatorsEstimatorResourcesPowerconsumptionRequestObject) (PostNamespacesNamespaceEstimatorsEstimatorResourcesPowerconsumptionResponseObject, error)
+	// (POST /namespaces/{ns}/estimators/{name}/values/powerconsumption)
+	PostNamespacesNsEstimatorsNameValuesPowerconsumption(ctx context.Context, request PostNamespacesNsEstimatorsNameValuesPowerconsumptionRequestObject) (PostNamespacesNsEstimatorsNameValuesPowerconsumptionResponseObject, error)
 }
 
 type StrictHandlerFunc func(ctx context.Context, w http.ResponseWriter, r *http.Request, args interface{}) (interface{}, error)
@@ -274,14 +274,14 @@ type strictHandler struct {
 	options     StrictHTTPServerOptions
 }
 
-// PostNamespacesNamespaceEstimatorsEstimatorResourcesPowerconsumption operation middleware
-func (sh *strictHandler) PostNamespacesNamespaceEstimatorsEstimatorResourcesPowerconsumption(w http.ResponseWriter, r *http.Request, namespace string, estimator string) {
-	var request PostNamespacesNamespaceEstimatorsEstimatorResourcesPowerconsumptionRequestObject
+// PostNamespacesNsEstimatorsNameValuesPowerconsumption operation middleware
+func (sh *strictHandler) PostNamespacesNsEstimatorsNameValuesPowerconsumption(w http.ResponseWriter, r *http.Request, ns string, name string) {
+	var request PostNamespacesNsEstimatorsNameValuesPowerconsumptionRequestObject
 
-	request.Namespace = namespace
-	request.Estimator = estimator
+	request.Ns = ns
+	request.Name = name
 
-	var body PostNamespacesNamespaceEstimatorsEstimatorResourcesPowerconsumptionJSONRequestBody
+	var body PostNamespacesNsEstimatorsNameValuesPowerconsumptionJSONRequestBody
 	if err := json.NewDecoder(r.Body).Decode(&body); err != nil {
 		sh.options.RequestErrorHandlerFunc(w, r, fmt.Errorf("can't decode JSON body: %w", err))
 		return
@@ -289,18 +289,18 @@ func (sh *strictHandler) PostNamespacesNamespaceEstimatorsEstimatorResourcesPowe
 	request.Body = &body
 
 	handler := func(ctx context.Context, w http.ResponseWriter, r *http.Request, request interface{}) (interface{}, error) {
-		return sh.ssi.PostNamespacesNamespaceEstimatorsEstimatorResourcesPowerconsumption(ctx, request.(PostNamespacesNamespaceEstimatorsEstimatorResourcesPowerconsumptionRequestObject))
+		return sh.ssi.PostNamespacesNsEstimatorsNameValuesPowerconsumption(ctx, request.(PostNamespacesNsEstimatorsNameValuesPowerconsumptionRequestObject))
 	}
 	for _, middleware := range sh.middlewares {
-		handler = middleware(handler, "PostNamespacesNamespaceEstimatorsEstimatorResourcesPowerconsumption")
+		handler = middleware(handler, "PostNamespacesNsEstimatorsNameValuesPowerconsumption")
 	}
 
 	response, err := handler(r.Context(), w, r, request)
 
 	if err != nil {
 		sh.options.ResponseErrorHandlerFunc(w, r, err)
-	} else if validResponse, ok := response.(PostNamespacesNamespaceEstimatorsEstimatorResourcesPowerconsumptionResponseObject); ok {
-		if err := validResponse.VisitPostNamespacesNamespaceEstimatorsEstimatorResourcesPowerconsumptionResponse(w); err != nil {
+	} else if validResponse, ok := response.(PostNamespacesNsEstimatorsNameValuesPowerconsumptionResponseObject); ok {
+		if err := validResponse.VisitPostNamespacesNsEstimatorsNameValuesPowerconsumptionResponse(w); err != nil {
 			sh.options.ResponseErrorHandlerFunc(w, r, err)
 		}
 	} else if response != nil {

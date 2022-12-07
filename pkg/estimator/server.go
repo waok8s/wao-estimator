@@ -18,23 +18,23 @@ var _ api.StrictServerInterface = (*Server)(nil)
 
 func NewServer(estimator *Estimator) *Server { return &Server{e: estimator} }
 
-func (s *Server) PostNamespacesNamespaceEstimatorsEstimatorResourcesPowerconsumption(ctx context.Context, request api.PostNamespacesNamespaceEstimatorsEstimatorResourcesPowerconsumptionRequestObject) (api.PostNamespacesNamespaceEstimatorsEstimatorResourcesPowerconsumptionResponseObject, error) {
-	wattIncrease, err := s.e.EstimatePowerConsumption(ctx, request.Namespace, request.Estimator, request.Body.CpuMilli, request.Body.NumWorkload)
+func (s *Server) PostNamespacesNsEstimatorsNameValuesPowerconsumption(ctx context.Context, request api.PostNamespacesNsEstimatorsNameValuesPowerconsumptionRequestObject) (api.PostNamespacesNsEstimatorsNameValuesPowerconsumptionResponseObject, error) {
+	wattIncrease, err := s.e.EstimatePowerConsumption(ctx, request.Ns, request.Name, request.Body.CpuMilli, request.Body.NumWorkloads)
 	if err != nil {
 		switch {
 		case errors.Is(err, ErrInvalidRequest):
-			return api.PostNamespacesNamespaceEstimatorsEstimatorResourcesPowerconsumption400Response{}, nil
+			return api.PostNamespacesNsEstimatorsNameValuesPowerconsumption400Response{}, nil
 		case errors.Is(err, ErrEstimatorNotFound):
-			return api.PostNamespacesNamespaceEstimatorsEstimatorResourcesPowerconsumption404Response{}, nil
+			return api.PostNamespacesNsEstimatorsNameValuesPowerconsumption404Response{}, nil
 		case errors.Is(err, ErrEstimatorError):
-			return api.PostNamespacesNamespaceEstimatorsEstimatorResourcesPowerconsumption500Response{}, nil
+			return api.PostNamespacesNsEstimatorsNameValuesPowerconsumption500Response{}, nil
 		default:
-			return api.PostNamespacesNamespaceEstimatorsEstimatorResourcesPowerconsumption500Response{}, nil
+			return api.PostNamespacesNsEstimatorsNameValuesPowerconsumption500Response{}, nil
 		}
 	}
-	return api.PostNamespacesNamespaceEstimatorsEstimatorResourcesPowerconsumption200JSONResponse{
+	return api.PostNamespacesNsEstimatorsNameValuesPowerconsumption200JSONResponse{
 		CpuMilli:     request.Body.CpuMilli,
-		NumWorkload:  request.Body.NumWorkload,
+		NumWorkloads: request.Body.NumWorkloads,
 		WattIncrease: wattIncrease,
 	}, nil
 }
