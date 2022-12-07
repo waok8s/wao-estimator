@@ -17,14 +17,17 @@ import (
 var verbose bool
 
 func v(format string, a ...any) {
-	if !verbose {
-		return
+	fmt.Fprintf(os.Stderr, format+"\n", a...)
+}
+
+func vv(format string, a ...any) {
+	if verbose {
+		v(format, a...)
 	}
-	fmt.Fprintf(os.Stderr, format, a...)
 }
 
 func reqPC(ctx context.Context, addr, ns, name string, cpuMilli, numWorkloads int) (*estimator.PowerConsumption, error) {
-	v("INFO: estimate power consumption addr=%s ns=%s name=%s cpu_milli=%d num_workloads=%d\n", addr, ns, name, cpuMilli, numWorkloads)
+	vv("INFO: estimate power consumption addr=%s ns=%s name=%s cpu_milli=%d num_workloads=%d", addr, ns, name, cpuMilli, numWorkloads)
 	client, err := estimator.NewClient(addr, ns, name)
 	if err != nil {
 		return nil, err
@@ -52,7 +55,7 @@ func csv2Ints(s string) ([]int, error) {
 		}
 		ret[i] = v
 	}
-	v("INFO: parse params %s->%v\n", s, ret)
+	vv("INFO: parse params %s->%v", s, ret)
 	return ret, nil
 }
 
@@ -60,12 +63,12 @@ func main() {
 	nn := flag.String("n", "default/default", "Estimator Namespace/Name")
 	addr := flag.String("a", "http://localhost:5678", "Estimator address")
 	p := flag.String("p", "500,5", "Request parameters")
-	flag.BoolVar(&verbose, "v", false, "Print logs")
+	flag.BoolVar(&verbose, "v", false, "Print detailed logs")
 	flag.Parse()
 	help := func(exitCode int) {
 		flag.Usage = func() {
 			fmt.Fprintf(os.Stderr, "Usage: %s [option]... <command>\n", os.Args[0])
-			fmt.Fprintf(os.Stderr, "\nCommands:\n  pc\n\tEstimate power consumption. -p=<cpu_milli>,<num_workloads>\n")
+			fmt.Fprintf(os.Stderr, "\nCommands:\n  pc\tEstimate power consumption. -p=<cpu_milli>,<num_workloads>\n")
 			fmt.Fprintf(os.Stderr, "\nOptions:\n")
 			flag.PrintDefaults()
 		}
@@ -94,10 +97,12 @@ func main() {
 		defer cncl()
 		pc, err := reqPC(ctx, *addr, ns, name, params[0], params[1])
 		if err != nil {
-			fmt.Fprintf(os.Stderr, "ERROR: %v", err)
+			v("ERROR: %v", err)
+			os.Exit(1)
 		}
 		if err := print(os.Stdout, pc); err != nil {
-			fmt.Fprintf(os.Stderr, "ERROR: %v", err)
+			v("ERROR: %v", err)
+			os.Exit(1)
 		}
 	default:
 		help(1)
