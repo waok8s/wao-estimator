@@ -9,6 +9,8 @@ import (
 	"sigs.k8s.io/controller-runtime/pkg/client"
 )
 
+type PowerConsumption = api.PowerConsumption
+
 type Client struct {
 	c api.ClientWithResponsesInterface
 	e client.ObjectKey
@@ -23,7 +25,7 @@ func NewClient(server string, estimatorNamespace, estimatorName string, opts ...
 	return &ec, nil
 }
 
-func (c *Client) EstimatePowerConsumption(ctx context.Context, cpuMilli, numWorkloads int) (*api.PowerConsumption, error) {
+func (c *Client) EstimatePowerConsumption(ctx context.Context, cpuMilli, numWorkloads int) (*PowerConsumption, error) {
 	body := api.PostNamespacesNsEstimatorsNameValuesPowerconsumptionJSONRequestBody{
 		CpuMilli:     cpuMilli,
 		NumWorkloads: numWorkloads,
