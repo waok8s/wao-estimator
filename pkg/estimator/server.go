@@ -3,6 +3,7 @@ package estimator
 import (
 	"context"
 	"errors"
+	"fmt"
 	"net/http"
 
 	middleware "github.com/deepmap/oapi-codegen/pkg/chi-middleware"
@@ -39,11 +40,31 @@ func (s *Server) PostNamespacesNsEstimatorsNameValuesPowerconsumption(ctx contex
 	}, nil
 }
 
+type AuthenticationFunc = openapi3filter.AuthenticationFunc
+
+const AuthFnAPIKeyRequestHeader = "X-API-KEY"
+
+func AuthFnAPIKey(apiKeys map[string]struct{}) AuthenticationFunc {
+	return func(ctx context.Context, input *openapi3filter.AuthenticationInput) error {
+		rh := http.CanonicalHeaderKey(AuthFnAPIKeyRequestHeader) // X-Api-Key
+		h := input.RequestValidationInput.Request.Header[rh]
+		if len(h) == 0 {
+			return fmt.Errorf("request header %s not found", rh)
+		}
+		for _, k := range h {
+			if _, ok := apiKeys[k]; ok {
+				return nil
+			}
+		}
+		return errors.New("authentication failed")
+	}
+}
+
 func (s *Server) Handler(middlewares ...func(http.Handler) http.Handler) (http.Handler, error) {
 	return s.HandlerWithAuthFn(openapi3filter.NoopAuthenticationFunc, middlewares...)
 }
 
-func (s *Server) HandlerWithAuthFn(authFn openapi3filter.AuthenticationFunc, middlewares ...func(http.Handler) http.Handler) (http.Handler, error) {
+func (s *Server) HandlerWithAuthFn(authFn AuthenticationFunc, middlewares ...func(http.Handler) http.Handler) (http.Handler, error) {
 	spec, err := api.GetSwagger()
 	if err != nil {
 		return nil, err

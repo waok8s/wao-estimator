@@ -1,6 +1,7 @@
 package main
 
 import (
+	"bytes"
 	"context"
 	"encoding/json"
 	"flag"
@@ -14,10 +15,39 @@ import (
 	"github.com/Nedopro2022/wao-estimator/pkg/estimator"
 )
 
+type msgWriter struct {
+	Writer io.Writer
+	Prefix string
+	Suffix string
+}
+
+func (w *msgWriter) Write(p []byte) (int, error) {
+	var buf bytes.Buffer
+	_, err := buf.WriteString(w.Prefix)
+	if err != nil {
+		return 0, fmt.Errorf("could not write to buf: %w", err)
+	}
+	_, err = buf.Write(p)
+	if err != nil {
+		return 0, fmt.Errorf("could not write to buf: %w", err)
+	}
+	_, err = buf.WriteString(w.Suffix)
+	if err != nil {
+		return 0, fmt.Errorf("could not write to buf: %w", err)
+	}
+	return w.Writer.Write(buf.Bytes())
+}
+
+var errW = &msgWriter{
+	Writer: os.Stderr,
+	Prefix: "",
+	Suffix: "\n",
+}
+
 var verbose bool
 
 func v(format string, a ...any) {
-	fmt.Fprintf(os.Stderr, format+"\n", a...)
+	fmt.Fprintf(errW, format, a...)
 }
 
 func vv(format string, a ...any) {
@@ -26,9 +56,20 @@ func vv(format string, a ...any) {
 	}
 }
 
-func reqPC(ctx context.Context, addr, ns, name string, cpuMilli, numWorkloads int) (*estimator.PowerConsumption, error) {
-	vv("INFO: estimate power consumption addr=%s ns=%s name=%s cpu_milli=%d num_workloads=%d", addr, ns, name, cpuMilli, numWorkloads)
-	client, err := estimator.NewClient(addr, ns, name)
+func reqPC(ctx context.Context, addr, hk, hv, ns, name string, cpuMilli, numWorkloads int) (*estimator.PowerConsumption, error) {
+	vv("INFO: estimate power consumption addr=%s hk=%s hv=%s ns=%s name=%s cpu_milli=%d num_workloads=%d", addr, hk, hv, ns, name, cpuMilli, numWorkloads)
+	opts := []estimator.ClientOption{}
+	if hk != "" && hv != "" {
+		opts = append(opts, estimator.ClientOptionAddRequestHeader(hk, hv))
+	}
+	if verbose {
+		opts = append(opts, estimator.ClientOptionGetRequestAsCurl(&msgWriter{
+			Writer: os.Stderr,
+			Prefix: "DEBUG: ",
+			Suffix: "\n",
+		}))
+	}
+	client, err := estimator.NewClient(addr, ns, name, opts...)
 	if err != nil {
 		return nil, err
 	}
@@ -61,29 +102,44 @@ func csv2Ints(s string) ([]int, error) {
 
 func main() {
 	nn := flag.String("n", "default/default", "Estimator Namespace/Name")
-	addr := flag.String("a", "http://localhost:5678", "Estimator address")
-	p := flag.String("p", "500,5", "Request parameters")
-	flag.BoolVar(&verbose, "v", false, "Print detailed logs")
+	addr := flag.String("a", "http://localhost:5656", "Estimator address")
+	p := flag.String("p", "500,5", "request parameters")
+	h := flag.String("H", "", "a request header e.g. 'X-API-KEY: hoge'")
+	flag.BoolVar(&verbose, "v", false, "print detailed logs")
+
 	flag.Parse()
+
 	help := func(exitCode int) {
 		flag.Usage = func() {
 			fmt.Fprintf(os.Stderr, "Usage: %s [option]... <command>\n", os.Args[0])
-			fmt.Fprintf(os.Stderr, "\nCommands:\n  pc\tEstimate power consumption. -p=<cpu_milli>,<num_workloads>\n")
+			fmt.Fprintf(os.Stderr, "\nCommands:\n  pc\testimate power consumption; -p=<cpu_milli>,<num_workloads>\n")
 			fmt.Fprintf(os.Stderr, "\nOptions:\n")
 			flag.PrintDefaults()
 		}
 		flag.Usage()
 		os.Exit(exitCode)
 	}
+
 	if len(os.Args) < 2 {
 		help(1)
 	}
+
+	// Namespace/Name
 	nns := strings.Split(*nn, "/")
 	if len(nns) != 2 {
 		help(1)
 	}
 	ns := nns[0]
 	name := nns[1]
+
+	// Key: Value
+	var hk, hv string
+	hs := strings.Split(*h, ":")
+	if len(hs) >= 2 {
+		hk = strings.TrimSpace(hs[0])
+		hv = strings.TrimSpace(hs[1])
+	}
+
 	switch os.Args[len(os.Args)-1] {
 	case "pc":
 		params, err := csv2Ints(*p)
@@ -95,7 +151,7 @@ func main() {
 		}
 		ctx, cncl := context.WithTimeout(context.Background(), 3*time.Second)
 		defer cncl()
-		pc, err := reqPC(ctx, *addr, ns, name, params[0], params[1])
+		pc, err := reqPC(ctx, *addr, hk, hv, ns, name, params[0], params[1])
 		if err != nil {
 			v("ERROR: %v", err)
 			os.Exit(1)
