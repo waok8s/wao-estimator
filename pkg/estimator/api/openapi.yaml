@@ -85,12 +85,13 @@ components:
             - 1
             - 15
           description: The amount of workloads have to be allocated.
-        watt_increase:
+        watt_increases:
           type: array
           items:
-            type: integer
+            type: number
+            format: double
           examples:
             - []
-            - [5]
-            - [5, 10, 15, 20, 15]
-          description: The estimated increase in power cunsumption for each workload.
+            - [5.0]
+            - [5.0, 10.0, 15.0, 20.0, 15.0]
+          description: The estimated power increase per workload.

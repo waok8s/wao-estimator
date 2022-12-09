@@ -15,8 +15,8 @@ type PowerConsumption struct {
 	// NumWorkloads The amount of workloads have to be allocated.
 	NumWorkloads int `json:"num_workloads"`
 
-	// WattIncrease The estimated increase in power cunsumption for each workload.
-	WattIncrease *[]int `json:"watt_increase,omitempty"`
+	// WattIncreases The estimated power increase per workload.
+	WattIncreases *[]float64 `json:"watt_increases,omitempty"`
 }
 
 // PostNamespacesNsEstimatorsNameValuesPowerconsumptionJSONRequestBody defines body for PostNamespacesNsEstimatorsNameValuesPowerconsumption for application/json ContentType.
