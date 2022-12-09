@@ -52,9 +52,9 @@ func NewClient(server string, estimatorNamespace, estimatorName string, opts ...
 
 func (c *Client) EstimatePowerConsumption(ctx context.Context, cpuMilli, numWorkloads int) (*PowerConsumption, error) {
 	body := api.PostNamespacesNsEstimatorsNameValuesPowerconsumptionJSONRequestBody{
-		CpuMilli:     cpuMilli,
-		NumWorkloads: numWorkloads,
-		WattIncrease: nil,
+		CpuMilli:      cpuMilli,
+		NumWorkloads:  numWorkloads,
+		WattIncreases: nil,
 	}
 	resp, err := c.c.PostNamespacesNsEstimatorsNameValuesPowerconsumptionWithResponse(ctx, c.e.Namespace, c.e.Name, body)
 	if err != nil {

@@ -9,36 +9,43 @@ import (
 	middleware "github.com/deepmap/oapi-codegen/pkg/chi-middleware"
 	"github.com/getkin/kin-openapi/openapi3filter"
 	"github.com/go-chi/chi/v5"
+	"sigs.k8s.io/controller-runtime/pkg/client"
 
 	"github.com/Nedopro2022/wao-estimator/pkg/estimator/api"
 )
 
 const ServerDefaultPort = "5656"
 
-type Server struct{ e *Estimator }
+type Server struct {
+	Estimators *Estimators
+}
 
 var _ api.StrictServerInterface = (*Server)(nil)
 
-func NewServer(estimator *Estimator) *Server { return &Server{e: estimator} }
+func NewServer(estimators *Estimators) *Server {
+	return &Server{Estimators: estimators}
+}
 
 func (s *Server) PostNamespacesNsEstimatorsNameValuesPowerconsumption(ctx context.Context, request api.PostNamespacesNsEstimatorsNameValuesPowerconsumptionRequestObject) (api.PostNamespacesNsEstimatorsNameValuesPowerconsumptionResponseObject, error) {
-	wattIncrease, err := s.e.EstimatePowerConsumption(ctx, request.Ns, request.Name, request.Body.CpuMilli, request.Body.NumWorkloads)
+	e, ok := s.Estimators.Get(client.ObjectKey{Namespace: request.Ns, Name: request.Name}.String())
+	if !ok {
+		return api.PostNamespacesNsEstimatorsNameValuesPowerconsumption404Response{}, nil
+	}
+	wattIncrease, err := e.EstimatePowerConsumption(ctx, request.Body.CpuMilli, request.Body.NumWorkloads)
 	if err != nil {
 		switch {
 		case errors.Is(err, ErrInvalidRequest):
 			return api.PostNamespacesNsEstimatorsNameValuesPowerconsumption400Response{}, nil
-		case errors.Is(err, ErrEstimatorNotFound):
-			return api.PostNamespacesNsEstimatorsNameValuesPowerconsumption404Response{}, nil
-		case errors.Is(err, ErrEstimatorError):
+		case errors.Is(err, ErrEstimator):
 			return api.PostNamespacesNsEstimatorsNameValuesPowerconsumption500Response{}, nil
 		default:
 			return api.PostNamespacesNsEstimatorsNameValuesPowerconsumption500Response{}, nil
 		}
 	}
 	return api.PostNamespacesNsEstimatorsNameValuesPowerconsumption200JSONResponse{
-		CpuMilli:     request.Body.CpuMilli,
-		NumWorkloads: request.Body.NumWorkloads,
-		WattIncrease: wattIncrease,
+		CpuMilli:      request.Body.CpuMilli,
+		NumWorkloads:  request.Body.NumWorkloads,
+		WattIncreases: &wattIncrease,
 	}, nil
 }
 
