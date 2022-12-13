@@ -2,9 +2,6 @@ package estimator
 
 import (
 	"context"
-	"encoding/json"
-	"errors"
-	"fmt"
 	"sync"
 	"sync/atomic"
 	"time"
@@ -77,22 +74,6 @@ func (s *NodeStatus) AverageAmbientTemp() (float64, error) {
 	return sum / float64(c), nil
 }
 
-// deepcopy copies structs.
-// Both dst and src must be pointers.
-func deepcopy(dst any, src any) error {
-	if dst == nil || src == nil {
-		return errors.New("both dst and src cannot be nil")
-	}
-	bytes, err := json.Marshal(src)
-	if err != nil {
-		return fmt.Errorf("marshal: %w", err)
-	}
-	if err := json.Unmarshal(bytes, dst); err != nil {
-		return fmt.Errorf("unmarshal: %w", err)
-	}
-	return nil
-}
-
 type Node struct {
 	Name string
 
@@ -146,9 +127,8 @@ func (n *Node) stop() {
 
 func (n *Node) GetStatus() *NodeStatus {
 	n.mu.Lock()
-	var s NodeStatus
-	deepcopy(&s, n.status)
-	return &s
+	defer n.mu.Unlock()
+	return n.status
 }
 
 type Nodes struct {

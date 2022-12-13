@@ -7,11 +7,14 @@ import (
 	"net"
 	"net/http"
 	"testing"
+	"time"
 
-	"github.com/Nedopro2022/wao-estimator/pkg/estimator"
 	. "github.com/onsi/ginkgo/v2"
 	. "github.com/onsi/gomega"
+
 	"sigs.k8s.io/controller-runtime/pkg/client"
+
+	"github.com/Nedopro2022/wao-estimator/pkg/estimator"
 )
 
 func TestAPIs(t *testing.T) {
@@ -42,7 +45,20 @@ var _ = Describe("Server/Client", func() {
 		hsv = nil
 	})
 
-	It("add/delete; no authentication", func() {
+	It("should fail to access with invalid URL", func() {
+		es = &estimator.Estimators{}
+		sv = estimator.NewServer(es)
+		h, err := sv.Handler()
+		Expect(err).NotTo(HaveOccurred())
+		hsv = &http.Server{Addr: addr, Handler: h}
+		go func() {
+			hsv.ListenAndServe()
+		}()
+
+		testAccess(addr, "", "default", "default", false)
+	})
+
+	It("shoud add/delete; no authentication", func() {
 		es = &estimator.Estimators{}
 		sv = estimator.NewServer(es)
 		h, err := sv.Handler()
@@ -84,7 +100,7 @@ var _ = Describe("Server/Client", func() {
 		testAccess(httpAddr, "", "hoge", "fuga", false)
 	})
 
-	It("access; with X-API-KEY authentication", func() {
+	It("should access; with X-API-KEY authentication", func() {
 
 		key1 := "foobar"
 		key2 := "hogefuga"
@@ -122,7 +138,7 @@ var _ = Describe("Server/Client", func() {
 })
 
 func testAccess(httpAddr, apiKey, ns, name string, want bool) {
-	var opts []estimator.ClientOption
+	opts := []estimator.ClientOption{estimator.ClientOptionGetRequestAsCurl(GinkgoWriter)}
 	if apiKey != "" {
 		opts = append(opts, estimator.ClientOptionAddRequestHeader(estimator.AuthFnAPIKeyRequestHeader, apiKey))
 	}
@@ -146,3 +162,38 @@ func testAccess(httpAddr, apiKey, ns, name string, want bool) {
 		Eventually(testFn).ShouldNot(Succeed())
 	}
 }
+
+var _ = Describe("Node/Nodes", func() {
+
+	var nm = &estimator.FakeNodeMonitor{
+		GetFunc: func(ctx context.Context) (*estimator.NodeStatus, error) {
+			time.Sleep(50 * time.Millisecond)
+			return &estimator.NodeStatus{
+				Timestamp:      time.Now(),
+				CPUSockets:     2,
+				CPUCores:       4,
+				CPUUsages:      [][]float64{{10.0, 10.0, 10.0, 10.0}, {10.0, 10.0, 10.0, 10.0}},
+				CPUTemps:       [][]float64{{30.0, 30.0, 30.0, 30.0}, {30.0, 30.0, 30.0, 30.0}},
+				AmbientSensors: 2,
+				AmbientTemps:   []float64{20.0, 20.0},
+			}, nil
+		},
+	}
+	var pcp = &estimator.FakePCPredictor{
+		PredictFunc: estimator.PredictPCFnDummy,
+	}
+
+	n0 := estimator.NewNode("n0", nm, 300*time.Millisecond, pcp)
+
+	status := n0.GetStatus()
+	Expect(status).To(BeNil())
+
+	// nodes.Add() calls Node.start()
+	nodes := &estimator.Nodes{}
+	ok := nodes.Add("n0", n0)
+	Expect(ok).To(BeTrue())
+
+	Eventually(func() *estimator.NodeStatus {
+		return n0.GetStatus()
+	}).ShouldNot(BeNil())
+})
