@@ -2,19 +2,25 @@ package controllers
 
 import (
 	"context"
+	"net"
+	"net/http"
 
+	"github.com/go-chi/chi/v5/middleware"
 	"k8s.io/apimachinery/pkg/runtime"
 	ctrl "sigs.k8s.io/controller-runtime"
 	"sigs.k8s.io/controller-runtime/pkg/client"
 	"sigs.k8s.io/controller-runtime/pkg/log"
 
 	v1beta1 "github.com/Nedopro2022/wao-estimator/api/v1beta1"
+	"github.com/Nedopro2022/wao-estimator/pkg/estimator"
 )
 
 // EstimatorReconciler reconciles a Estimator object
 type EstimatorReconciler struct {
 	client.Client
 	Scheme *runtime.Scheme
+
+	estimators *estimator.Estimators
 }
 
 //+kubebuilder:rbac:groups=waofed.bitmedia.co.jp,resources=estimators,verbs=get;list;watch;create;update;patch;delete
@@ -40,7 +46,25 @@ func (r *EstimatorReconciler) Reconcile(ctx context.Context, req ctrl.Request) (
 
 // SetupWithManager sets up the controller with the Manager.
 func (r *EstimatorReconciler) SetupWithManager(mgr ctrl.Manager) error {
+	if err := r.startEstimatorServer(); err != nil {
+		return err
+	}
 	return ctrl.NewControllerManagedBy(mgr).
 		For(&v1beta1.Estimator{}).
 		Complete(r)
+}
+
+func (r *EstimatorReconciler) startEstimatorServer() error {
+	addr := net.JoinHostPort("", estimator.ServerDefaultPort)
+
+	r.estimators = &estimator.Estimators{}
+
+	h, err := estimator.NewServer(r.estimators).Handler(middleware.RequestID, middleware.RealIP, middleware.Logger, middleware.Recoverer, middleware.Heartbeat("/healthz"))
+	if err != nil {
+		return err
+	}
+
+	go http.ListenAndServe(addr, h)
+
+	return nil
 }

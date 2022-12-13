@@ -11,6 +11,28 @@ metadata:
     app.kubernetes.io/managed-by: kustomize
   name: system
 ---
+apiVersion: v1
+kind: Service
+metadata:
+  name: controller-manager-estimator-service
+  namespace: system
+  labels:
+    control-plane: controller-manager
+    app.kubernetes.io/name: service
+    app.kubernetes.io/instance: controller-manager-estimator
+    app.kubernetes.io/component: manager
+    app.kubernetes.io/created-by: wao-estimator
+    app.kubernetes.io/part-of: wao-estimator
+    app.kubernetes.io/managed-by: kustomize
+spec:
+  type: ClusterIP
+  ports:
+    - name: estimator
+      port: 5656
+      targetPort: estimator
+  selector:
+    control-plane: controller-manager
+---
 apiVersion: apps/v1
 kind: Deployment
 metadata:
@@ -98,5 +120,8 @@ spec:
           requests:
             cpu: 10m
             memory: 64Mi
+        ports:
+        - name: estimator
+          containerPort: 5656
       serviceAccountName: controller-manager
       terminationGracePeriodSeconds: 10
