@@ -73,8 +73,14 @@ var (
 	testNS  = "default"
 	testEC1 = v1beta1.Estimator{
 		ObjectMeta: metav1.ObjectMeta{
-			Name:      "default",
 			Namespace: testNS,
+			Name:      "hoge",
+		},
+	}
+	testEC2 = v1beta1.Estimator{
+		ObjectMeta: metav1.ObjectMeta{
+			Namespace: testNS,
+			Name:      "fuga",
 		},
 	}
 )
@@ -124,21 +130,36 @@ var _ = Describe("Estimator controller", func() {
 	})
 
 	It("should add/delete estimator.Estimator", func() {
-		ec := testEC1
 		ctx := context.Background()
 
 		// Estimators: empty
 		Expect(estimatorReconciler.GetEstimators().Len()).To(Equal(0))
 
-		// Estimators: default/default
-		err := k8sClient.Create(ctx, &ec)
+		// Estimators: default/hoge
+		ec1 := testEC1
+		err := k8sClient.Create(ctx, &ec1)
+		Expect(err).NotTo(HaveOccurred())
+		Eventually(func() int {
+			return estimatorReconciler.GetEstimators().Len()
+		}).Should(Equal(1))
+
+		// Estimators: default/hoge, default/huga
+		ec2 := testEC2
+		err = k8sClient.Create(ctx, &ec2)
+		Expect(err).NotTo(HaveOccurred())
+		Eventually(func() int {
+			return estimatorReconciler.GetEstimators().Len()
+		}).Should(Equal(2))
+
+		// Estimators: default/fuga
+		err = k8sClient.Delete(ctx, &ec1)
 		Expect(err).NotTo(HaveOccurred())
 		Eventually(func() int {
 			return estimatorReconciler.GetEstimators().Len()
 		}).Should(Equal(1))
 
 		// Estimators: empty
-		err = k8sClient.Delete(ctx, &ec)
+		err = k8sClient.Delete(ctx, &ec2)
 		Expect(err).NotTo(HaveOccurred())
 		Eventually(func() int {
 			return estimatorReconciler.GetEstimators().Len()
