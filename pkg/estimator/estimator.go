@@ -4,6 +4,7 @@ import (
 	"context"
 	"math"
 	"sync"
+	"sync/atomic"
 )
 
 type Estimator struct {
@@ -53,6 +54,7 @@ func (e *Estimator) stop() {
 }
 
 type Estimators struct {
+	c int32
 	m sync.Map
 }
 
@@ -61,8 +63,7 @@ func (m *Estimators) Get(k string) (*Estimator, bool) {
 	if !ok {
 		return nil, ok
 	}
-	x, ok := v.(*Estimator)
-	return x, ok
+	return v.(*Estimator), true
 }
 
 func (m *Estimators) Add(k string, v *Estimator) bool {
@@ -71,13 +72,21 @@ func (m *Estimators) Add(k string, v *Estimator) bool {
 		return false
 	}
 	m.m.Store(k, v)
+	atomic.AddInt32(&m.c, 1)
 	return true
 }
 
 func (m *Estimators) Delete(k string) {
-	n, ok := m.Get(k)
+	v, ok := m.Get(k)
 	if ok {
-		n.stop()
+		v.stop()
 	}
 	m.m.Delete(k)
+	atomic.AddInt32(&m.c, -1)
 }
+
+func (m *Estimators) Range(f func(k string, v *Estimator) bool) {
+	m.m.Range(func(kk any, vv any) bool { return f(kk.(string), vv.(*Estimator)) })
+}
+
+func (m *Estimators) Len() int { return int(m.c) }

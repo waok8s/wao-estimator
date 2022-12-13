@@ -1,20 +1,25 @@
-package controllers
+package controllers_test
 
 import (
+	"context"
 	"path/filepath"
 	"testing"
+	"time"
 
 	. "github.com/onsi/ginkgo/v2"
 	. "github.com/onsi/gomega"
 
+	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/client-go/kubernetes/scheme"
 	"k8s.io/client-go/rest"
+	ctrl "sigs.k8s.io/controller-runtime"
 	"sigs.k8s.io/controller-runtime/pkg/client"
 	"sigs.k8s.io/controller-runtime/pkg/envtest"
 	logf "sigs.k8s.io/controller-runtime/pkg/log"
 	"sigs.k8s.io/controller-runtime/pkg/log/zap"
 
-	waofedv1beta1 "github.com/Nedopro2022/wao-estimator/api/v1beta1"
+	v1beta1 "github.com/Nedopro2022/wao-estimator/api/v1beta1"
+	"github.com/Nedopro2022/wao-estimator/controllers"
 	//+kubebuilder:scaffold:imports
 )
 
@@ -46,7 +51,7 @@ var _ = BeforeSuite(func() {
 	Expect(err).NotTo(HaveOccurred())
 	Expect(cfg).NotTo(BeNil())
 
-	err = waofedv1beta1.AddToScheme(scheme.Scheme)
+	err = v1beta1.AddToScheme(scheme.Scheme)
 	Expect(err).NotTo(HaveOccurred())
 
 	//+kubebuilder:scaffold:scheme
@@ -61,4 +66,83 @@ var _ = AfterSuite(func() {
 	By("tearing down the test environment")
 	err := testEnv.Stop()
 	Expect(err).NotTo(HaveOccurred())
+})
+
+var (
+	wait    = func() { time.Sleep(100 * time.Millisecond) }
+	testNS  = "default"
+	testEC1 = v1beta1.Estimator{
+		ObjectMeta: metav1.ObjectMeta{
+			Name:      "default",
+			Namespace: testNS,
+		},
+	}
+)
+
+var _ = Describe("Estimator controller", func() {
+	var cncl context.CancelFunc
+	var estimatorReconciler *controllers.EstimatorReconciler
+
+	BeforeEach(func() {
+		ctx, cancel := context.WithCancel(context.Background())
+		cncl = cancel
+
+		var err error
+		err = k8sClient.DeleteAllOf(ctx, &v1beta1.Estimator{}, client.InNamespace(testNS))
+		Expect(err).NotTo(HaveOccurred())
+		Eventually(func() int {
+			var objs v1beta1.EstimatorList
+			err = k8sClient.List(ctx, &objs, client.InNamespace(testNS))
+			Expect(err).NotTo(HaveOccurred())
+			return len(objs.Items)
+		}).Should(Equal(0))
+
+		mgr, err := ctrl.NewManager(cfg, ctrl.Options{
+			Scheme: scheme.Scheme,
+		})
+		Expect(err).NotTo(HaveOccurred())
+
+		estimatorReconciler = &controllers.EstimatorReconciler{
+			Client: k8sClient,
+			Scheme: scheme.Scheme,
+		}
+		err = estimatorReconciler.SetupWithManager(mgr)
+		Expect(err).NotTo(HaveOccurred())
+
+		go func() {
+			err := mgr.Start(ctx)
+			if err != nil {
+				panic(err)
+			}
+		}()
+		wait()
+	})
+
+	AfterEach(func() {
+		cncl() // stop the mgr
+		wait()
+	})
+
+	It("should add/delete estimator.Estimator", func() {
+		ec := testEC1
+		ctx := context.Background()
+
+		// Estimators: empty
+		Expect(estimatorReconciler.GetEstimators().Len()).To(Equal(0))
+
+		// Estimators: default/default
+		err := k8sClient.Create(ctx, &ec)
+		Expect(err).NotTo(HaveOccurred())
+		Eventually(func() int {
+			return estimatorReconciler.GetEstimators().Len()
+		}).Should(Equal(1))
+
+		// Estimators: empty
+		err = k8sClient.Delete(ctx, &ec)
+		Expect(err).NotTo(HaveOccurred())
+		Eventually(func() int {
+			return estimatorReconciler.GetEstimators().Len()
+		}).Should(Equal(0))
+
+	})
 })

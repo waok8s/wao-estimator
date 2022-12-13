@@ -132,8 +132,8 @@ func (n *Node) GetStatus() *NodeStatus {
 }
 
 type Nodes struct {
-	count int32
-	m     sync.Map
+	c int32
+	m sync.Map
 }
 
 func (m *Nodes) Get(k string) (*Node, bool) {
@@ -149,30 +149,23 @@ func (m *Nodes) Add(k string, v *Node) bool {
 	if ok {
 		return false
 	}
-	v.start()
 	m.m.Store(k, v)
-	atomic.AddInt32(&m.count, 1)
+	atomic.AddInt32(&m.c, 1)
+	v.start()
 	return true
 }
 
 func (m *Nodes) Delete(k string) {
-	n, ok := m.Get(k)
+	v, ok := m.Get(k)
 	if ok {
-		n.stop()
+		v.stop()
 	}
 	m.m.Delete(k)
+	atomic.AddInt32(&m.c, -1)
 }
 
 func (m *Nodes) Range(f func(k string, v *Node) bool) {
 	m.m.Range(func(kk any, vv any) bool { return f(kk.(string), vv.(*Node)) })
 }
 
-func (m *Nodes) Len() int {
-	// FIXME: this is O(N)
-	var i int
-	m.Range(func(_ string, _ *Node) bool {
-		i++
-		return true
-	})
-	return i
-}
+func (m *Nodes) Len() int { return int(m.c) }

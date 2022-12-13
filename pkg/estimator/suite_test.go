@@ -29,6 +29,10 @@ var _ = BeforeSuite(func() {
 var _ = AfterSuite(func() {
 })
 
+var (
+	wait = func() { time.Sleep(100 * time.Millisecond) }
+)
+
 var _ = Describe("Server/Client", func() {
 
 	var es *estimator.Estimators
@@ -40,6 +44,7 @@ var _ = Describe("Server/Client", func() {
 	AfterEach(func() {
 		err := hsv.Shutdown(context.TODO())
 		Expect(err).NotTo(HaveOccurred())
+		wait()
 		es = nil
 		sv = nil
 		hsv = nil
@@ -54,6 +59,7 @@ var _ = Describe("Server/Client", func() {
 		go func() {
 			hsv.ListenAndServe()
 		}()
+		wait()
 
 		testAccess(addr, "", "default", "default", false)
 	})
@@ -67,6 +73,7 @@ var _ = Describe("Server/Client", func() {
 		go func() {
 			hsv.ListenAndServe()
 		}()
+		wait()
 
 		// empty
 		testAccess(httpAddr, "", "default", "default", false)
@@ -113,14 +120,15 @@ var _ = Describe("Server/Client", func() {
 		go func() {
 			hsv.ListenAndServe()
 		}()
+		wait()
 
-		// // empty
+		// Estimators: empty
 		testAccess(httpAddr, "", "default", "default", false)
 		testAccess(httpAddr, "xxx", "default", "default", false)
 		testAccess(httpAddr, key1, "default", "default", false)
 		testAccess(httpAddr, key2, "default", "default", false)
 
-		// // default/default
+		// Estimators: default/default
 		ok := es.Add(client.ObjectKey{Namespace: "default", Name: "default"}.String(), estimator.NewEstimator(&estimator.Nodes{}))
 		Expect(ok).To(BeTrue())
 		testAccess(httpAddr, "", "default", "default", false)
@@ -128,7 +136,7 @@ var _ = Describe("Server/Client", func() {
 		testAccess(httpAddr, key1, "default", "default", true)
 		testAccess(httpAddr, key2, "default", "default", true)
 
-		// empty
+		// Estimators: empty
 		es.Delete(client.ObjectKey{Namespace: "default", Name: "default"}.String())
 		testAccess(httpAddr, "", "default", "default", false)
 		testAccess(httpAddr, "xxx", "default", "default", false)
