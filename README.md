@@ -1,80 +1,53 @@
 # wao-estimator
+
+[![GitHub](https://img.shields.io/github/license/Nedopro2022/wao-estimator)](https://github.com/Nedopro2022/wao-estimator/blob/main/LICENSE)
+[![GitHub release (latest SemVer)](https://img.shields.io/github/v/release/Nedopro2022/wao-estimator)](https://github.com/Nedopro2022/wao-estimator/releases/latest)
+[![CI](https://github.com/Nedopro2022/wao-estimator/actions/workflows/ci.yaml/badge.svg)](https://github.com/Nedopro2022/wao-estimator/actions/workflows/ci.yaml)
+![GitHub go.mod Go version](https://img.shields.io/github/go-mod/go-version/Nedopro2022/wao-estimator)
+[![Go Report Card](https://goreportcard.com/badge/github.com/Nedopro2022/wao-estimator)](https://goreportcard.com/report/github.com/Nedopro2022/wao-estimator)
+[![codecov](https://codecov.io/gh/Nedopro2022/wao-estimator/branch/main/graph/badge.svg)](https://codecov.io/gh/Nedopro2022/wao-estimator)
+
+
 // TODO(user): Add simple overview of use/purpose
 
-## Description
+<!-- START doctoc generated TOC please keep comment here to allow auto update -->
+<!-- DON'T EDIT THIS SECTION, INSTEAD RE-RUN doctoc TO UPDATE -->
+
+- [Overview](#overview)
+- [Getting Started](#getting-started)
+- [Developing](#developing)
+  - [Prerequisites](#prerequisites)
+  - [Run a development cluster with kind](#run-a-development-cluster-with-kind)
+- [License](#license)
+
+<!-- END doctoc generated TOC please keep comment here to allow auto update -->
+
+## Overview
 // TODO(user): An in-depth paragraph about your project and overview of use
 
 ## Getting Started
-You’ll need a Kubernetes cluster to run against. You can use [KIND](https://sigs.k8s.io/kind) to get a local cluster for testing, or run against a remote cluster.
-**Note:** Your controller will automatically use the current context in your kubeconfig file (i.e. whatever cluster `kubectl cluster-info` shows).
+// TODO
 
-### Running on the cluster
-1. Install Instances of Custom Resources:
+## Developing
 
-```sh
-kubectl apply -f config/samples/
-```
+This Operator uses [Kubebuilder](https://github.com/kubernetes-sigs/kubebuilder), so we basically follow the Kubebuilder way. See the [Kubebuilder Documentation](https://book.kubebuilder.io/introduction.html) for details.
 
-2. Build and push your image to the location specified by `IMG`:
-	
-```sh
-make docker-build docker-push IMG=<some-registry>/wao-estimator:tag
-```
-	
-3. Deploy the controller to the cluster with the image specified by `IMG`:
+### Prerequisites
 
-```sh
-make deploy IMG=<some-registry>/wao-estimator:tag
-```
+Make sure you have the following tools installed:
 
-### Uninstall CRDs
-To delete the CRDs from the cluster:
+- Git
+- Make
+- Go
+- Docker
+
+
+### Run a development cluster with [kind](https://kind.sigs.k8s.io/)
 
 ```sh
-make uninstall
+./hack/dev-kind-reset-cluster.sh # create a K8s cluster `kind-wao-estimator`
+./hack/dev-kind-deploy.sh # build and deploy the Operator
 ```
-
-### Undeploy controller
-UnDeploy the controller to the cluster:
-
-```sh
-make undeploy
-```
-
-## Contributing
-// TODO(user): Add detailed information on how you would like others to contribute to this project
-
-### How it works
-This project aims to follow the Kubernetes [Operator pattern](https://kubernetes.io/docs/concepts/extend-kubernetes/operator/)
-
-It uses [Controllers](https://kubernetes.io/docs/concepts/architecture/controller/) 
-which provides a reconcile function responsible for synchronizing resources untile the desired state is reached on the cluster 
-
-### Test It Out
-1. Install the CRDs into the cluster:
-
-```sh
-make install
-```
-
-2. Run your controller (this will run in the foreground, so switch to a new terminal if you want to leave it running):
-
-```sh
-make run
-```
-
-**NOTE:** You can also run this in one step by running: `make install run`
-
-### Modifying the API definitions
-If you are editing the API definitions, generate the manifests such as CRs or CRDs using:
-
-```sh
-make manifests
-```
-
-**NOTE:** Run `make --help` for more information on all potential `make` targets
-
-More information can be found via the [Kubebuilder Documentation](https://book.kubebuilder.io/introduction.html)
 
 ## License
 
