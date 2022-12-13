@@ -2,10 +2,12 @@ package controllers
 
 import (
 	"context"
+	"fmt"
 	"net"
 	"net/http"
 
 	"github.com/go-chi/chi/v5/middleware"
+	"k8s.io/apimachinery/pkg/api/errors"
 	"k8s.io/apimachinery/pkg/runtime"
 	ctrl "sigs.k8s.io/controller-runtime"
 	"sigs.k8s.io/controller-runtime/pkg/client"
@@ -21,27 +23,6 @@ type EstimatorReconciler struct {
 	Scheme *runtime.Scheme
 
 	estimators *estimator.Estimators
-}
-
-//+kubebuilder:rbac:groups=waofed.bitmedia.co.jp,resources=estimators,verbs=get;list;watch;create;update;patch;delete
-//+kubebuilder:rbac:groups=waofed.bitmedia.co.jp,resources=estimators/status,verbs=get;update;patch
-//+kubebuilder:rbac:groups=waofed.bitmedia.co.jp,resources=estimators/finalizers,verbs=update
-
-// Reconcile is part of the main kubernetes reconciliation loop which aims to
-// move the current state of the cluster closer to the desired state.
-// TODO(user): Modify the Reconcile function to compare the state specified by
-// the Estimator object against the actual cluster state, and then
-// perform operations to make the cluster state reflect the state specified by
-// the user.
-//
-// For more details, check Reconcile and its Result here:
-// - https://pkg.go.dev/sigs.k8s.io/controller-runtime@v0.13.1/pkg/reconcile
-func (r *EstimatorReconciler) Reconcile(ctx context.Context, req ctrl.Request) (ctrl.Result, error) {
-	_ = log.FromContext(ctx)
-
-	// TODO(user): your logic here
-
-	return ctrl.Result{}, nil
 }
 
 // SetupWithManager sets up the controller with the Manager.
@@ -67,4 +48,45 @@ func (r *EstimatorReconciler) startEstimatorServer() error {
 	go http.ListenAndServe(addr, h)
 
 	return nil
+}
+
+//+kubebuilder:rbac:groups=waofed.bitmedia.co.jp,resources=estimators,verbs=get;list;watch;create;update;patch;delete
+//+kubebuilder:rbac:groups=waofed.bitmedia.co.jp,resources=estimators/status,verbs=get;update;patch
+//+kubebuilder:rbac:groups=waofed.bitmedia.co.jp,resources=estimators/finalizers,verbs=update
+
+// Reconcile moves the current state of the cluster closer to the desired state.
+func (r *EstimatorReconciler) Reconcile(ctx context.Context, req ctrl.Request) (ctrl.Result, error) {
+	lg := log.FromContext(ctx)
+	lg.Info("Reconcile")
+
+	// get Estimator
+	var estimatorConf v1beta1.Estimator
+	err := r.Get(ctx, req.NamespacedName, &estimatorConf)
+	if errors.IsNotFound(err) {
+		lg.Info("Estimator is deleted")
+
+		// delete estimator.Estimator
+		r.estimators.Delete(req.String())
+
+		return ctrl.Result{}, nil
+	}
+	if err != nil {
+		lg.Error(err, "unable to get Estimator")
+		return ctrl.Result{}, err
+	}
+	if !estimatorConf.DeletionTimestamp.IsZero() {
+		lg.Info("Estimator is being deleted")
+		return ctrl.Result{}, nil
+	}
+
+	// init estimator.Estimator
+	// TODO: set Nodes
+	e := estimator.NewEstimator(&estimator.Nodes{})
+	if ok := r.estimators.Add(req.String(), e); !ok {
+		err := fmt.Errorf("r.estimators.Add() returned false: %s", req.String())
+		lg.Error(err, "unable to add estimator.Estimator")
+		return ctrl.Result{}, err
+	}
+
+	return ctrl.Result{}, nil
 }
