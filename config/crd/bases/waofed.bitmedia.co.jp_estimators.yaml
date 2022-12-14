@@ -12,6 +12,9 @@ spec:
     kind: Estimator
     listKind: EstimatorList
     plural: estimators
+    shortNames:
+    - est
+    - estm
     singular: estimator
   scope: Namespaced
   versions:
@@ -35,10 +38,81 @@ spec:
           spec:
             description: EstimatorSpec defines the desired state of Estimator
             properties:
-              foo:
-                description: Foo is an example field of Estimator. Edit estimator_types.go
-                  to remove/update
-                type: string
+              nodeMonitor:
+                properties:
+                  ipmiExporter:
+                    properties:
+                      endpoint:
+                        properties:
+                          default:
+                            type: string
+                          override:
+                            properties:
+                              label:
+                                type: string
+                            type: object
+                        type: object
+                    required:
+                    - endpoint
+                    type: object
+                  redfish:
+                    properties:
+                      endpoint:
+                        properties:
+                          default:
+                            type: string
+                          override:
+                            properties:
+                              label:
+                                type: string
+                            type: object
+                        type: object
+                    required:
+                    - endpoint
+                    type: object
+                  type:
+                    properties:
+                      default:
+                        type: string
+                      override:
+                        properties:
+                          label:
+                            type: string
+                        type: object
+                    type: object
+                required:
+                - type
+                type: object
+              powerConsumptionPredictor:
+                properties:
+                  mlServer:
+                    properties:
+                      endpoint:
+                        properties:
+                          default:
+                            type: string
+                          override:
+                            properties:
+                              label:
+                                type: string
+                            type: object
+                        type: object
+                    required:
+                    - endpoint
+                    type: object
+                  type:
+                    properties:
+                      default:
+                        type: string
+                      override:
+                        properties:
+                          label:
+                            type: string
+                        type: object
+                    type: object
+                required:
+                - type
+                type: object
             type: object
           status:
             description: EstimatorStatus defines the observed state of Estimator

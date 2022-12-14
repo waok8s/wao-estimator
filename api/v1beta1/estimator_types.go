@@ -4,26 +4,84 @@ import (
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 )
 
-// EDIT THIS FILE!  THIS IS SCAFFOLDING FOR YOU TO OWN!
-// NOTE: json tags are required.  Any new fields you add must have json tags for the fields to be serialized.
+const (
+	OperatorName = "wao-estimator"
+)
+
+type NodeMonitorType string
+
+const (
+	NodeMonitorTypeNone         = "None"
+	NodeMonitorTypeIPMIExporter = "IPMIExporter"
+	NodeMonitorTypeRedfish      = "Redfish"
+)
+
+var nodeMonitorTypeCollection = map[NodeMonitorType]struct{}{
+	NodeMonitorTypeNone:         {},
+	NodeMonitorTypeIPMIExporter: {},
+	NodeMonitorTypeRedfish:      {},
+}
+
+type PowerConsumptionPredictorType string
+
+const (
+	PowerConsumptionPredictorTypeNone      = "None"
+	PowerConsumptionPredictorTypeMLServer  = "MLServer"
+	PowerConsumptionPredictorTypeTFServing = "TFServing"
+)
+
+var powerConsumptionPredictorTypeCollection = map[PowerConsumptionPredictorType]struct{}{
+	PowerConsumptionPredictorTypeNone:     {},
+	PowerConsumptionPredictorTypeMLServer: {},
+	// PowerConsumptionPredictorTypeTFServing: {}, // not implemented
+}
+
+type FieldRef struct {
+	Label *string `json:"label,omitempty"`
+}
+
+type Field struct {
+	Default  string    `json:"default,omitempty"`
+	Override *FieldRef `json:"override,omitempty"`
+}
+
+type NodeMonitor struct {
+	Type         Field         `json:"type"`
+	IPMIExporter *IPMIExporter `json:"ipmiExporter,omitempty"`
+	Redfish      *Redfish      `json:"redfish,omitempty"`
+}
+
+type IPMIExporter struct {
+	Endpoint Field `json:"endpoint"`
+}
+
+type Redfish struct {
+	Endpoint Field `json:"endpoint"`
+}
+
+type PowerConsumptionPredictor struct {
+	Type     Field     `json:"type"`
+	MLServer *MLServer `json:"mlServer,omitempty"`
+}
+
+type MLServer struct {
+	Endpoint Field `json:"endpoint"`
+}
 
 // EstimatorSpec defines the desired state of Estimator
 type EstimatorSpec struct {
-	// INSERT ADDITIONAL SPEC FIELDS - desired state of cluster
-	// Important: Run "make" to regenerate code after modifying this file
-
-	// Foo is an example field of Estimator. Edit estimator_types.go to remove/update
-	Foo string `json:"foo,omitempty"`
+	NodeMonitor               NodeMonitor               `json:"nodeMonitor,omitempty"`
+	PowerConsumptionPredictor PowerConsumptionPredictor `json:"powerConsumptionPredictor,omitempty"`
 }
 
 // EstimatorStatus defines the observed state of Estimator
 type EstimatorStatus struct {
 	// INSERT ADDITIONAL STATUS FIELD - define observed state of cluster
-	// Important: Run "make" to regenerate code after modifying this file
 }
 
 //+kubebuilder:object:root=true
 //+kubebuilder:subresource:status
+//+kubebuilder:resource:shortName=est;estm
 
 // Estimator is the Schema for the estimators API
 type Estimator struct {

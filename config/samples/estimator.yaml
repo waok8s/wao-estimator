@@ -3,4 +3,28 @@ kind: Estimator
 metadata:
   namespace: default
   name: default
-spec: {}
+spec:
+  nodeMonitor:
+    type:
+      default: IPMIExporter
+      override: { label: waofed.bitmedia.co.jp/node-monitor }
+    ipmiExporter:
+      endpoint:
+        default: http://localhost:9200/metrics,
+        override: { label: waofed.bitmedia.co.jp/ipmi-exporter }
+    redfish:
+      endpoint:
+        default: http://localhost/redfish/v1,
+        override: { label: waofed.bitmedia.co.jp/redfish }
+  powerConsumptionPredictor:
+    type:
+      default: MLServer
+      override: { label: waofed.bitmedia.co.jp/power-consumption-predictor }
+    mlServer:
+      endpoint:
+        default: http://wao-mlserver.default.svc.cluster.local:8080
+        override: { label: waofed.bitmedia.co.jp/mlserver }
+    # tensorflowServing:
+    #   endpoint:
+    #     default: http://wao-tf-serving.default.svc.cluster.local:8080
+    #     override: { label: waofed.bitmedia.co.jp/tfserving }
