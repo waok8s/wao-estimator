@@ -16,7 +16,7 @@ const (
 	NodeMonitorTypeRedfish      = "Redfish"
 )
 
-var nodeMonitorTypeCollection = map[NodeMonitorType]struct{}{
+var NodeMonitorTypes = map[NodeMonitorType]struct{}{
 	NodeMonitorTypeNone:         {},
 	NodeMonitorTypeIPMIExporter: {},
 	NodeMonitorTypeRedfish:      {},
@@ -30,7 +30,7 @@ const (
 	PowerConsumptionPredictorTypeTFServing = "TFServing"
 )
 
-var powerConsumptionPredictorTypeCollection = map[PowerConsumptionPredictorType]struct{}{
+var PowerConsumptionPredictorTypes = map[PowerConsumptionPredictorType]struct{}{
 	PowerConsumptionPredictorTypeNone:     {},
 	PowerConsumptionPredictorTypeMLServer: {},
 	// PowerConsumptionPredictorTypeTFServing: {}, // not implemented
@@ -41,7 +41,7 @@ type FieldRef struct {
 }
 
 type Field struct {
-	Default  string    `json:"default,omitempty"`
+	Default  string    `json:"default"`
 	Override *FieldRef `json:"override,omitempty"`
 }
 
@@ -70,8 +70,8 @@ type MLServer struct {
 
 // EstimatorSpec defines the desired state of Estimator
 type EstimatorSpec struct {
-	NodeMonitor               NodeMonitor               `json:"nodeMonitor,omitempty"`
-	PowerConsumptionPredictor PowerConsumptionPredictor `json:"powerConsumptionPredictor,omitempty"`
+	NodeMonitor               *NodeMonitor               `json:"nodeMonitor,omitempty"`
+	PowerConsumptionPredictor *PowerConsumptionPredictor `json:"powerConsumptionPredictor,omitempty"`
 }
 
 // EstimatorStatus defines the observed state of Estimator

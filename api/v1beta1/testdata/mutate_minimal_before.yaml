@@ -1,0 +1,6 @@
+apiVersion: waofed.bitmedia.co.jp/v1beta1
+kind: Estimator
+metadata:
+  namespace: default
+  name: default
+spec: {}
