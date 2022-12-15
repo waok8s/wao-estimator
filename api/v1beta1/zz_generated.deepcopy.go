@@ -6,6 +6,7 @@
 package v1beta1
 
 import (
+	"k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/runtime"
 )
 
@@ -184,6 +185,11 @@ func (in *MLServer) DeepCopy() *MLServer {
 func (in *NodeMonitor) DeepCopyInto(out *NodeMonitor) {
 	*out = *in
 	in.Type.DeepCopyInto(&out.Type)
+	if in.RefreshInterval != nil {
+		in, out := &in.RefreshInterval, &out.RefreshInterval
+		*out = new(v1.Duration)
+		**out = **in
+	}
 	if in.IPMIExporter != nil {
 		in, out := &in.IPMIExporter, &out.IPMIExporter
 		*out = new(IPMIExporter)

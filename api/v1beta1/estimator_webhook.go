@@ -1,6 +1,7 @@
 package v1beta1
 
 import (
+	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/runtime"
 	ctrl "sigs.k8s.io/controller-runtime"
 	logf "sigs.k8s.io/controller-runtime/pkg/log"
@@ -30,7 +31,9 @@ func (r *Estimator) Default() {
 func (r *Estimator) defaultNodeMonitor() {
 	if r.Spec.NodeMonitor == nil {
 		r.Spec.NodeMonitor = &NodeMonitor{Type: Field{Default: NodeMonitorTypeNone}}
-		return
+	}
+	if r.Spec.NodeMonitor.RefreshInterval == nil {
+		r.Spec.NodeMonitor.RefreshInterval = &metav1.Duration{Duration: DefaultNodeMonitorRefreshInterval}
 	}
 }
 

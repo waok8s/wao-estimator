@@ -5,6 +5,7 @@ metadata:
   name: default
 spec:
   nodeMonitor:
+    refreshInterval: 5s
     type:
       default: IPMIExporter
       override: { label: waofed.bitmedia.co.jp/node-monitor }

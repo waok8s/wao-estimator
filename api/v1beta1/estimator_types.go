@@ -1,11 +1,15 @@
 package v1beta1
 
 import (
+	"time"
+
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 )
 
 const (
 	OperatorName = "wao-estimator"
+
+	DefaultNodeMonitorRefreshInterval = 30 * time.Second
 )
 
 type NodeMonitorType string
@@ -46,9 +50,10 @@ type Field struct {
 }
 
 type NodeMonitor struct {
-	Type         Field         `json:"type"`
-	IPMIExporter *IPMIExporter `json:"ipmiExporter,omitempty"`
-	Redfish      *Redfish      `json:"redfish,omitempty"`
+	Type            Field            `json:"type"`
+	RefreshInterval *metav1.Duration `json:"refreshInterval,omitempty"`
+	IPMIExporter    *IPMIExporter    `json:"ipmiExporter,omitempty"`
+	Redfish         *Redfish         `json:"redfish,omitempty"`
 }
 
 type IPMIExporter struct {

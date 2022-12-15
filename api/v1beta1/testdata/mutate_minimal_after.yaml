@@ -5,6 +5,7 @@ metadata:
   name: default
 spec:
   nodeMonitor:
+    refreshInterval: 30s
     type:
       default: None
   powerConsumptionPredictor:
