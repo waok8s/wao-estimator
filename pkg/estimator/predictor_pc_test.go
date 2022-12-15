@@ -21,15 +21,15 @@ func TestFakePCPredictor_Predict(t *testing.T) {
 		wantWatt float64
 		wantErr  bool
 	}{
-		{"70", fields{PredictPCFnDummy}, args{context.TODO(), 2000, NodeStatus{
+		{"70", fields{PredictPCFnDummy}, args{context.Background(), 2000, NodeStatus{
 			CPUUsages:    [][]float64{{30.0}},
 			AmbientTemps: []float64{20.0},
 		}}, 70.0, false},
-		{"80", fields{PredictPCFnDummy}, args{context.TODO(), 2000, NodeStatus{
+		{"80", fields{PredictPCFnDummy}, args{context.Background(), 2000, NodeStatus{
 			CPUUsages:    [][]float64{{35.0}},
 			AmbientTemps: []float64{25.0},
 		}}, 80.0, false},
-		{"err", fields{PredictPCFnDummy}, args{context.TODO(), 2000, NodeStatus{}}, 0.0, true},
+		{"err", fields{PredictPCFnDummy}, args{context.Background(), 2000, NodeStatus{}}, 0.0, true},
 	}
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {

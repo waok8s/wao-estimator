@@ -42,7 +42,7 @@ var _ = Describe("Server/Client", func() {
 	httpAddr := "http://" + addr
 
 	AfterEach(func() {
-		err := hsv.Shutdown(context.TODO())
+		err := hsv.Shutdown(context.Background())
 		Expect(err).NotTo(HaveOccurred())
 		wait()
 		es = nil
@@ -154,7 +154,7 @@ func testAccess(httpAddr, apiKey, ns, name string, want bool) {
 	Expect(err).NotTo(HaveOccurred())
 
 	testFn := func() error {
-		pc, err := cl.EstimatePowerConsumption(context.TODO(), 500, 5)
+		pc, err := cl.EstimatePowerConsumption(context.Background(), 500, 5)
 		if err != nil {
 			return fmt.Errorf("err != nil : %w", err)
 		}

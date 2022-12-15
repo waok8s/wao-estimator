@@ -38,8 +38,8 @@ func TestFakeNodeMonitor_FetchStatus(t *testing.T) {
 		want    NodeStatus
 		wantErr bool
 	}{
-		{"ok", fields{getFnCopy(testNS1, nil)}, args{context.TODO()}, testNS1, false},
-		{"err", fields{getFnCopy(NodeStatus{}, errors.New(""))}, args{context.TODO()}, NodeStatus{}, true},
+		{"ok", fields{getFnCopy(testNS1, nil)}, args{context.Background()}, testNS1, false},
+		{"err", fields{getFnCopy(NodeStatus{}, errors.New(""))}, args{context.Background()}, NodeStatus{}, true},
 	}
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
