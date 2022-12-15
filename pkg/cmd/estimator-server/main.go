@@ -1,0 +1,34 @@
+package main
+
+import (
+	"net"
+	"net/http"
+
+	"github.com/Nedopro2022/wao-estimator/pkg/estimator"
+	"github.com/getkin/kin-openapi/openapi3filter"
+	"github.com/go-chi/chi/v5/middleware"
+)
+
+// This is just an example showing how to start an estimator.Server
+
+func main() {
+	apikeys := map[string]struct{}{}
+	host := "localhost"
+	port := estimator.ServerDefaultPort
+	addr := net.JoinHostPort(host, port)
+
+	authFn := estimator.AuthFnAPIKey(apikeys)
+	if len(apikeys) == 0 {
+		authFn = openapi3filter.NoopAuthenticationFunc
+	}
+
+	es := &estimator.Estimators{}
+	if ok := es.Add("default/default", estimator.NewEstimator(&estimator.Nodes{})); !ok {
+		panic("es.Add not ok")
+	}
+	h, err := estimator.NewServer(es).HandlerWithAuthFn(authFn, middleware.RequestID, middleware.RealIP, middleware.Logger, middleware.Recoverer, middleware.Heartbeat("/healthz"))
+	if err != nil {
+		panic(err)
+	}
+	panic(http.ListenAndServe(addr, h))
+}
