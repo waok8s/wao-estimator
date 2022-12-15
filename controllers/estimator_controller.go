@@ -7,6 +7,7 @@ import (
 	"net/http"
 
 	"github.com/go-chi/chi/v5/middleware"
+	corev1 "k8s.io/api/core/v1"
 	"k8s.io/apimachinery/pkg/api/errors"
 	"k8s.io/apimachinery/pkg/runtime"
 	ctrl "sigs.k8s.io/controller-runtime"
@@ -89,4 +90,17 @@ func (r *EstimatorReconciler) Reconcile(ctx context.Context, req ctrl.Request) (
 	}
 
 	return ctrl.Result{}, nil
+}
+
+func GetFieldValue(f v1beta1.Field, node *corev1.Node) string {
+	switch {
+	case f.Override != nil && f.Override.Label != nil && node != nil:
+		v, ok := node.Labels[*f.Override.Label]
+		if !ok {
+			return f.Default
+		}
+		return v
+	default:
+		return f.Default
+	}
 }
