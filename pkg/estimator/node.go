@@ -80,20 +80,39 @@ type Node struct {
 	mu     sync.Mutex
 	stopCh chan struct{}
 
-	Monitor    NodeMonitor
+	monitor    NodeMonitor
 	nmInterval time.Duration
-	status     *NodeStatus
+	status     NodeStatus
 
-	PCPredictor PowerConsumptionPredictor
+	pcPredictor PowerConsumptionPredictor
+}
+
+var _ NodeMonitor = (*Node)(nil)
+var _ PowerConsumptionPredictor = (*Node)(nil)
+
+func (n *Node) FetchStatus(ctx context.Context) (NodeStatus, error) {
+	if n.monitor == nil {
+		return NodeStatus{}, ErrNodeMonitorNotFound
+	}
+	return n.monitor.FetchStatus(ctx)
+}
+
+func (n *Node) Predict(ctx context.Context, requestCPUMilli int, status NodeStatus) (watt float64, err error) {
+	if n.pcPredictor == nil {
+		return 0.0, ErrPCPredictorNotFound
+	}
+	return n.pcPredictor.Predict(ctx, requestCPUMilli, status)
 }
 
 func NewNode(name string, nm NodeMonitor, nodeStatusRefreshInterval time.Duration, pcp PowerConsumptionPredictor) *Node {
 	n := Node{
 		Name:        name,
-		Monitor:     nm,
-		PCPredictor: pcp,
+		stopCh:      make(chan struct{}),
+		monitor:     nm,
+		pcPredictor: pcp,
 		nmInterval:  nodeStatusRefreshInterval,
 	}
+	lg.Info().Msgf("NewNode() n=%+v", &n)
 	return &n
 }
 
@@ -107,7 +126,7 @@ func (n *Node) start() {
 			case <-time.After(n.nmInterval):
 				timeout := n.nmInterval / 2
 				ctx, cncl := context.WithTimeout(context.Background(), timeout)
-				status, err := n.Monitor.FetchStatus(ctx)
+				status, err := n.FetchStatus(ctx)
 				cncl()
 				if err != nil {
 					lg.Error().Msgf("could not fetch NodeStatus: %v", err)
@@ -125,7 +144,7 @@ func (n *Node) stop() {
 	close(n.stopCh)
 }
 
-func (n *Node) GetStatus() *NodeStatus {
+func (n *Node) GetStatus() NodeStatus {
 	n.mu.Lock()
 	defer n.mu.Unlock()
 	return n.status
@@ -145,23 +164,27 @@ func (m *Nodes) Get(k string) (*Node, bool) {
 }
 
 func (m *Nodes) Add(k string, v *Node) bool {
+	if v == nil {
+		return false
+	}
 	_, ok := m.m.Load(k)
 	if ok {
 		return false
 	}
 	m.m.Store(k, v)
-	atomic.AddInt32(&m.c, 1)
+	atomic.AddInt32(&(m.c), 1)
 	v.start()
 	return true
 }
 
 func (m *Nodes) Delete(k string) {
 	v, ok := m.Get(k)
-	if ok {
-		v.stop()
+	if !ok {
+		return
 	}
+	v.stop()
+	atomic.AddInt32(&(m.c), -1)
 	m.m.Delete(k)
-	atomic.AddInt32(&m.c, -1)
 }
 
 func (m *Nodes) Range(f func(k string, v *Node) bool) {

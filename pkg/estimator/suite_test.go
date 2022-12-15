@@ -174,9 +174,9 @@ func testAccess(httpAddr, apiKey, ns, name string, want bool) {
 var _ = Describe("Node/Nodes", func() {
 
 	var nm = &estimator.FakeNodeMonitor{
-		GetFunc: func(ctx context.Context) (*estimator.NodeStatus, error) {
+		GetFunc: func(ctx context.Context) (estimator.NodeStatus, error) {
 			time.Sleep(50 * time.Millisecond)
-			return &estimator.NodeStatus{
+			return estimator.NodeStatus{
 				Timestamp:      time.Now(),
 				CPUSockets:     2,
 				CPUCores:       4,
@@ -194,14 +194,14 @@ var _ = Describe("Node/Nodes", func() {
 	n0 := estimator.NewNode("n0", nm, 300*time.Millisecond, pcp)
 
 	status := n0.GetStatus()
-	Expect(status).To(BeNil())
+	Expect(status.Timestamp).To(Equal(time.Time{}))
 
 	// nodes.Add() calls Node.start()
 	nodes := &estimator.Nodes{}
 	ok := nodes.Add("n0", n0)
 	Expect(ok).To(BeTrue())
 
-	Eventually(func() *estimator.NodeStatus {
-		return n0.GetStatus()
-	}).ShouldNot(BeNil())
+	Eventually(func() time.Time {
+		return n0.GetStatus().Timestamp
+	}).ShouldNot(Equal(time.Time{}))
 })

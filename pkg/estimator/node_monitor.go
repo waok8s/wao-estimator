@@ -6,16 +6,16 @@ import (
 )
 
 type NodeMonitor interface {
-	FetchStatus(ctx context.Context) (*NodeStatus, error)
+	FetchStatus(ctx context.Context) (NodeStatus, error)
 }
 
 type FakeNodeMonitor struct {
-	GetFunc func(ctx context.Context) (*NodeStatus, error)
+	GetFunc func(ctx context.Context) (NodeStatus, error)
 }
 
 var _ NodeMonitor = (*FakeNodeMonitor)(nil)
 
-func (m *FakeNodeMonitor) FetchStatus(ctx context.Context) (*NodeStatus, error) {
+func (m *FakeNodeMonitor) FetchStatus(ctx context.Context) (NodeStatus, error) {
 	return m.GetFunc(ctx)
 }
 
@@ -25,7 +25,7 @@ type RedfishNodeMonitor struct {
 
 var _ NodeMonitor = (*RedfishNodeMonitor)(nil)
 
-func (m *RedfishNodeMonitor) FetchStatus(ctx context.Context) (*NodeStatus, error) {
+func (m *RedfishNodeMonitor) FetchStatus(ctx context.Context) (NodeStatus, error) {
 	// TODO
-	return nil, fmt.Errorf("not yet implemented (%w)", ErrNodeMonitor)
+	return NodeStatus{}, fmt.Errorf("not yet implemented (%w)", ErrNodeMonitor)
 }

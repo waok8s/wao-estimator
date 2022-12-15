@@ -8,7 +8,7 @@ import (
 	"time"
 )
 
-var testNS1 = &NodeStatus{
+var testNS1 = NodeStatus{
 	Timestamp:      time.Time{},
 	CPUSockets:     2,
 	CPUCores:       4,
@@ -18,15 +18,15 @@ var testNS1 = &NodeStatus{
 	AmbientTemps:   []float64{20.0, 20.0},
 }
 
-func getFnCopy(s *NodeStatus, err error) func(ctx context.Context) (*NodeStatus, error) {
-	return func(_ context.Context) (*NodeStatus, error) {
+func getFnCopy(s NodeStatus, err error) func(ctx context.Context) (NodeStatus, error) {
+	return func(_ context.Context) (NodeStatus, error) {
 		return s, err
 	}
 }
 
 func TestFakeNodeMonitor_FetchStatus(t *testing.T) {
 	type fields struct {
-		GetFunc func(ctx context.Context) (*NodeStatus, error)
+		GetFunc func(ctx context.Context) (NodeStatus, error)
 	}
 	type args struct {
 		ctx context.Context
@@ -35,11 +35,11 @@ func TestFakeNodeMonitor_FetchStatus(t *testing.T) {
 		name    string
 		fields  fields
 		args    args
-		want    *NodeStatus
+		want    NodeStatus
 		wantErr bool
 	}{
 		{"ok", fields{getFnCopy(testNS1, nil)}, args{context.TODO()}, testNS1, false},
-		{"err", fields{getFnCopy(nil, errors.New(""))}, args{context.TODO()}, nil, true},
+		{"err", fields{getFnCopy(NodeStatus{}, errors.New(""))}, args{context.TODO()}, NodeStatus{}, true},
 	}
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
