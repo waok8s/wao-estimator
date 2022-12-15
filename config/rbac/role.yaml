@@ -6,6 +6,14 @@ metadata:
   name: manager-role
 rules:
 - apiGroups:
+  - ""
+  resources:
+  - nodes
+  verbs:
+  - get
+  - list
+  - watch
+- apiGroups:
   - waofed.bitmedia.co.jp
   resources:
   - estimators

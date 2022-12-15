@@ -54,6 +54,7 @@ func (r *EstimatorReconciler) startEstimatorServer() error {
 //+kubebuilder:rbac:groups=waofed.bitmedia.co.jp,resources=estimators,verbs=get;list;watch;create;update;patch;delete
 //+kubebuilder:rbac:groups=waofed.bitmedia.co.jp,resources=estimators/status,verbs=get;update;patch
 //+kubebuilder:rbac:groups=waofed.bitmedia.co.jp,resources=estimators/finalizers,verbs=update
+//+kubebuilder:rbac:groups=core,resources=nodes,verbs=get;list;watch
 
 // Reconcile moves the current state of the cluster closer to the desired state.
 func (r *EstimatorReconciler) Reconcile(ctx context.Context, req ctrl.Request) (ctrl.Result, error) {
@@ -61,8 +62,8 @@ func (r *EstimatorReconciler) Reconcile(ctx context.Context, req ctrl.Request) (
 	lg.Info("Reconcile")
 
 	// get Estimator
-	var estimatorConf v1beta1.Estimator
-	err := r.Get(ctx, req.NamespacedName, &estimatorConf)
+	var estConf v1beta1.Estimator
+	err := r.Get(ctx, req.NamespacedName, &estConf)
 	if errors.IsNotFound(err) {
 		lg.Info("Estimator is deleted")
 
@@ -75,14 +76,17 @@ func (r *EstimatorReconciler) Reconcile(ctx context.Context, req ctrl.Request) (
 		lg.Error(err, "unable to get Estimator")
 		return ctrl.Result{}, err
 	}
-	if !estimatorConf.DeletionTimestamp.IsZero() {
+	if !estConf.DeletionTimestamp.IsZero() {
 		lg.Info("Estimator is being deleted")
 		return ctrl.Result{}, nil
 	}
 
 	// init estimator.Estimator
-	// TODO: set Nodes
-	e := estimator.NewEstimator(&estimator.Nodes{})
+	nodes, err := r.reconcileEstimatorNodes(ctx, &estConf)
+	if err != nil {
+		return ctrl.Result{}, err
+	}
+	e := estimator.NewEstimator(nodes)
 	if ok := r.estimators.Add(req.String(), e); !ok {
 		err := fmt.Errorf("r.estimators.Add() returned false: %s", req.String())
 		lg.Error(err, "unable to add estimator.Estimator")
@@ -92,7 +96,62 @@ func (r *EstimatorReconciler) Reconcile(ctx context.Context, req ctrl.Request) (
 	return ctrl.Result{}, nil
 }
 
-func GetFieldValue(f v1beta1.Field, node *corev1.Node) string {
+func (r *EstimatorReconciler) reconcileEstimatorNodes(ctx context.Context, estConf *v1beta1.Estimator) (*estimator.Nodes, error) {
+	lg := log.FromContext(ctx)
+	lg.Info("reconcileEstimatorNodes")
+
+	var nodeList corev1.NodeList
+	if err := r.List(ctx, &nodeList); err != nil {
+		return nil, err
+	}
+
+	var estNodes estimator.Nodes
+
+	for _, node := range nodeList.Items {
+		name := node.Name
+
+		// spec.nodeMonitor
+		var nm estimator.NodeMonitor
+		nmType := v1beta1.NodeMonitorType(getFieldValue(estConf.Spec.NodeMonitor.Type, &node))
+		switch nmType {
+		case v1beta1.NodeMonitorTypeNone:
+		case v1beta1.NodeMonitorTypeIPMIExporter:
+			lg.Info(fmt.Sprintf("NodeMonitorType=%v is not implemented", nmType))
+		case v1beta1.NodeMonitorTypeRedfish:
+			// TODO
+			v := &estimator.RedfishNodeMonitor{}
+			nm = v
+		default:
+			lg.Info(fmt.Sprintf("NodeMonitorType=%v is not defined", nmType))
+		}
+		lg.Info(fmt.Sprintf("spec.nodeMonitor.Type=%v nm=%+v", nmType, nm))
+
+		// spec.powerConsumptionPredictor
+		var pcp estimator.PowerConsumptionPredictor
+		pcpType := v1beta1.PowerConsumptionPredictorType(getFieldValue(estConf.Spec.PowerConsumptionPredictor.Type, &node))
+		switch pcpType {
+		case v1beta1.PowerConsumptionPredictorTypeNone:
+		case v1beta1.PowerConsumptionPredictorTypeMLServer:
+			// TODO
+			v := &estimator.MLServerPCPredictor{}
+			pcp = v
+		case v1beta1.PowerConsumptionPredictorTypeTFServing:
+			lg.Info(fmt.Sprintf("PowerConsumptionPredictorType=%v is not implemented", pcpType))
+		default:
+			lg.Info(fmt.Sprintf("PowerConsumptionPredictorType=%v is not defined", pcpType))
+		}
+		lg.Info(fmt.Sprintf("spec.powerConsumptionPredictor.Type=%v pcp=%+v", pcpType, pcp))
+
+		estNode := estimator.NewNode(name, nm, estConf.Spec.NodeMonitor.RefreshInterval.Duration, pcp)
+		if ok := estNodes.Add(name, estNode); !ok {
+			lg.Error(fmt.Errorf("unable to add node to estimator.Nodes name=%v", name), "duplicate node name found")
+		}
+	}
+
+	return &estNodes, nil
+}
+
+func getFieldValue(f v1beta1.Field, node *corev1.Node) string {
 	switch {
 	case f.Override != nil && f.Override.Label != nil && node != nil:
 		v, ok := node.Labels[*f.Override.Label]
