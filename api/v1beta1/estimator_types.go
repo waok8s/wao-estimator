@@ -20,12 +20,6 @@ const (
 	NodeMonitorTypeRedfish      = "Redfish"
 )
 
-var NodeMonitorTypes = map[NodeMonitorType]struct{}{
-	NodeMonitorTypeNone:         {},
-	NodeMonitorTypeIPMIExporter: {},
-	NodeMonitorTypeRedfish:      {},
-}
-
 type PowerConsumptionPredictorType string
 
 const (
@@ -33,12 +27,6 @@ const (
 	PowerConsumptionPredictorTypeMLServer  = "MLServer"
 	PowerConsumptionPredictorTypeTFServing = "TFServing"
 )
-
-var PowerConsumptionPredictorTypes = map[PowerConsumptionPredictorType]struct{}{
-	PowerConsumptionPredictorTypeNone:     {},
-	PowerConsumptionPredictorTypeMLServer: {},
-	// PowerConsumptionPredictorTypeTFServing: {}, // not implemented
-}
 
 type FieldRef struct {
 	Label *string `json:"label,omitempty"`
