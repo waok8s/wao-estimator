@@ -118,22 +118,30 @@ func NewNode(name string, nm NodeMonitor, nodeStatusRefreshInterval time.Duratio
 
 func (n *Node) start() {
 	lg.Info().Msgf("Node.start() Name=%v", n.Name)
+
+	updateStatus := func() {
+		timeout := n.nmInterval / 2
+		ctx, cncl := context.WithTimeout(context.Background(), timeout)
+		status, err := n.FetchStatus(ctx)
+		cncl()
+		if err != nil {
+			lg.Error().Msgf("could not fetch NodeStatus: %v", err)
+			return
+		}
+		n.mu.Lock()
+		n.status = status
+		n.mu.Unlock()
+	}
+
+	updateStatus() // first time exec
+
 	go func() {
 		for {
 			select {
 			case <-n.stopCh:
 				return
 			case <-time.After(n.nmInterval):
-				timeout := n.nmInterval / 2
-				ctx, cncl := context.WithTimeout(context.Background(), timeout)
-				status, err := n.FetchStatus(ctx)
-				cncl()
-				if err != nil {
-					lg.Error().Msgf("could not fetch NodeStatus: %v", err)
-				}
-				n.mu.Lock()
-				n.status = status
-				n.mu.Unlock()
+				updateStatus()
 			}
 		}
 	}()

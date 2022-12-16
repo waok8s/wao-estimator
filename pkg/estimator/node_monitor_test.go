@@ -9,7 +9,7 @@ import (
 )
 
 var testNS1 = NodeStatus{
-	Timestamp:      time.Time{},
+	Timestamp:      time.Now(),
 	CPUSockets:     2,
 	CPUCores:       4,
 	CPUUsages:      [][]float64{{10.0, 10.0, 10.0, 10.0}, {10.0, 10.0, 10.0, 10.0}},

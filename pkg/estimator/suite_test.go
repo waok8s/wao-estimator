@@ -29,6 +29,11 @@ var _ = BeforeSuite(func() {
 var _ = AfterSuite(func() {
 })
 
+func init() {
+	SetDefaultEventuallyTimeout(3 * time.Second)
+	SetDefaultEventuallyPollingInterval(100 * time.Millisecond)
+}
+
 var (
 	wait = func() { time.Sleep(100 * time.Millisecond) }
 )
@@ -173,7 +178,9 @@ func testAccess(httpAddr, apiKey, ns, name string, want bool) {
 
 var _ = Describe("Node/Nodes", func() {
 
-	var nm = &estimator.FakeNodeMonitor{
+	ctx := context.Background()
+
+	nm0 := &estimator.FakeNodeMonitor{
 		GetFunc: func(ctx context.Context) (estimator.NodeStatus, error) {
 			time.Sleep(50 * time.Millisecond)
 			return estimator.NodeStatus{
@@ -187,21 +194,59 @@ var _ = Describe("Node/Nodes", func() {
 			}, nil
 		},
 	}
-	var pcp = &estimator.FakePCPredictor{
+	nm1 := &estimator.FakeNodeMonitor{
+		GetFunc: func(ctx context.Context) (estimator.NodeStatus, error) {
+			time.Sleep(50 * time.Millisecond)
+			return estimator.NodeStatus{}, estimator.ErrNodeMonitor
+		},
+	}
+	pcp0 := &estimator.FakePCPredictor{
 		PredictFunc: estimator.PredictPCFnDummy,
 	}
+	pcp1 := &estimator.FakePCPredictor{
+		PredictFunc: func(context.Context, int, estimator.NodeStatus) (float64, error) {
+			return 0.0, estimator.ErrPCPredictor
+		},
+	}
+	intv := 300 * time.Millisecond
 
-	n0 := estimator.NewNode("n0", nm, 300*time.Millisecond, pcp)
+	nodes := &estimator.Nodes{}
 
+	// n0: normal case
+	n0 := estimator.NewNode("n0", nm0, intv, pcp0)
 	status := n0.GetStatus()
 	Expect(status.Timestamp).To(Equal(time.Time{}))
 
-	// nodes.Add() calls Node.start()
-	nodes := &estimator.Nodes{}
-	ok := nodes.Add("n0", n0)
+	ok := nodes.Add("n0", n0) // nodes.Add() calls Node.start()
 	Expect(ok).To(BeTrue())
 
 	Eventually(func() time.Time {
 		return n0.GetStatus().Timestamp
 	}).ShouldNot(Equal(time.Time{}))
+
+	watt, err := n0.Predict(ctx, 2000, estimator.NodeStatus{
+		CPUUsages:    [][]float64{{30.0}},
+		AmbientTemps: []float64{20.0},
+	})
+	Expect(err).NotTo(HaveOccurred())
+	Expect(watt).To(Equal(70.0))
+
+	// n1: error case
+	n1 := estimator.NewNode("n1", nm1, intv, pcp1)
+	status = n1.GetStatus()
+	Expect(status.Timestamp).To(Equal(time.Time{}))
+
+	ok = nodes.Add("n1", n1)
+	Expect(ok).To(BeTrue())
+
+	time.Sleep(intv)
+	Eventually(func() time.Time {
+		return n1.GetStatus().Timestamp
+	}).Should(Equal(time.Time{}))
+
+	_, err = n1.Predict(ctx, 2000, estimator.NodeStatus{
+		CPUUsages:    [][]float64{{30.0}},
+		AmbientTemps: []float64{20.0},
+	})
+	Expect(err).To(HaveOccurred())
 })

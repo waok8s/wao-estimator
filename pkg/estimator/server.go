@@ -23,6 +23,9 @@ type Server struct {
 var _ api.StrictServerInterface = (*Server)(nil)
 
 func NewServer(estimators *Estimators) *Server {
+	if estimators == nil {
+		estimators = &Estimators{}
+	}
 	return &Server{Estimators: estimators}
 }
 

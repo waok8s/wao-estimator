@@ -12,6 +12,9 @@ type Estimator struct {
 }
 
 func NewEstimator(nodes *Nodes) *Estimator {
+	if nodes == nil {
+		nodes = &Nodes{}
+	}
 	return &Estimator{Nodes: nodes}
 }
 

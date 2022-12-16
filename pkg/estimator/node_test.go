@@ -1,6 +1,8 @@
 package estimator
 
 import (
+	"context"
+	"reflect"
 	"testing"
 	"time"
 )
@@ -139,8 +141,9 @@ func TestNodes_Len(t *testing.T) {
 		del
 	)
 	type action struct {
-		op   op
-		node *Node
+		Op   op
+		Name string
+		Node *Node
 	}
 	tests := []struct {
 		name   string
@@ -149,38 +152,114 @@ func TestNodes_Len(t *testing.T) {
 		want   int
 	}{
 		{"0", &Nodes{}, []action{}, 0},
+		{"0,0", &Nodes{}, []action{
+			{add, "n1", nil},
+		}, 0},
 		{"0,1", &Nodes{}, []action{
-			{add, NewNode("n1", nil, time.Second, nil)},
+			{add, "n1", NewNode("n1", nil, time.Second, nil)},
 		}, 1},
 		{"0,1,1", &Nodes{}, []action{
-			{add, NewNode("n1", nil, time.Second, nil)},
-			{add, NewNode("n1", nil, time.Second, nil)},
+			{add, "n1", NewNode("n1", nil, time.Second, nil)},
+			{add, "n1", NewNode("n1", nil, time.Second, nil)},
 		}, 1},
 		{"0,1,2", &Nodes{}, []action{
-			{add, NewNode("n1", nil, time.Second, nil)},
-			{add, NewNode("n2", nil, time.Second, nil)},
+			{add, "n1", NewNode("n1", nil, time.Second, nil)},
+			{add, "n2", NewNode("n2", nil, time.Second, nil)},
 		}, 2},
 		{"0,1,0", &Nodes{}, []action{
-			{add, NewNode("n1", nil, time.Second, nil)},
-			{del, NewNode("n1", nil, time.Second, nil)},
+			{add, "n1", NewNode("n1", nil, time.Second, nil)},
+			{del, "n1", nil},
 		}, 0},
 		{"0,1,1", &Nodes{}, []action{
-			{add, NewNode("n1", nil, time.Second, nil)},
-			{del, NewNode("n2", nil, time.Second, nil)},
+			{add, "n1", NewNode("n1", nil, time.Second, nil)},
+			{del, "n2", nil},
 		}, 1},
 	}
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
 			for _, act := range tt.action {
-				switch act.op {
+				switch act.Op {
 				case add:
-					tt.nodes.Add(act.node.Name, act.node)
+					tt.nodes.Add(act.Name, act.Node)
 				case del:
-					tt.nodes.Delete(act.node.Name)
+					tt.nodes.Delete(act.Name)
 				}
 			}
 			if got := tt.nodes.Len(); got != tt.want {
 				t.Errorf("Nodes.Len() = %v, want %v", got, tt.want)
+			}
+		})
+	}
+}
+
+func TestNode_FetchStatus(t *testing.T) {
+	tests := []struct {
+		name    string
+		node    *Node
+		want    NodeStatus
+		wantErr bool
+	}{
+		{"nm==nil", &Node{
+			Name:    "n1",
+			monitor: nil,
+		}, NodeStatus{}, true},
+		{"nm!=nil", &Node{
+			Name:    "n1",
+			monitor: &FakeNodeMonitor{GetFunc: func(context.Context) (NodeStatus, error) { return testNS1, nil }},
+		}, testNS1, false},
+		{"failed", &Node{
+			Name:    "n1",
+			monitor: &FakeNodeMonitor{GetFunc: func(context.Context) (NodeStatus, error) { return NodeStatus{}, ErrNodeMonitor }},
+		}, NodeStatus{}, true},
+	}
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			got, err := tt.node.FetchStatus(context.Background())
+			if (err != nil) != tt.wantErr {
+				t.Errorf("Node.FetchStatus() error = %v, wantErr %v", err, tt.wantErr)
+				return
+			}
+			if !reflect.DeepEqual(got, tt.want) {
+				t.Errorf("Node.FetchStatus() = %v, want %v", got, tt.want)
+			}
+		})
+	}
+}
+
+func TestNode_Predict(t *testing.T) {
+	type args struct {
+		requestCPUMilli int
+		status          NodeStatus
+	}
+	tests := []struct {
+		name     string
+		node     *Node
+		args     args
+		wantWatt float64
+		wantErr  bool
+	}{
+		{"pcp==nil", &Node{
+			Name:        "n1",
+			pcPredictor: nil,
+		}, args{2000, testNS1}, 0.0, true},
+		{"pcp!=nil", &Node{
+			Name:        "n1",
+			pcPredictor: &FakePCPredictor{PredictFunc: PredictPCFnDummy},
+		}, args{2000, testNS1}, 50.0, false},
+		{"failed", &Node{
+			Name:        "n1",
+			pcPredictor: &FakePCPredictor{PredictFunc: func(context.Context, int, NodeStatus) (float64, error) { return 0.0, ErrPCPredictor }},
+		}, args{2000, testNS1}, 0.0, true},
+	}
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			gotWatt, err := tt.node.Predict(context.Background(), tt.args.requestCPUMilli, tt.args.status)
+			if (err != nil) != tt.wantErr {
+				t.Errorf("Node.Predict() error = %v, wantErr %v", err, tt.wantErr)
+				return
+			}
+			if gotWatt != tt.wantWatt {
+				t.Errorf("Node.Predict() = %v, want %v", gotWatt, tt.wantWatt)
 			}
 		})
 	}
