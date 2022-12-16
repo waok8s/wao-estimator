@@ -27,22 +27,22 @@ func TestEstimators_Len(t *testing.T) {
 			{add, "n1", nil},
 		}, 0},
 		{"0,1", &Estimators{}, []action{
-			{add, "n1", NewEstimator(nil)},
+			{add, "n1", &Estimator{Nodes: nil}},
 		}, 1},
 		{"0,1,1", &Estimators{}, []action{
-			{add, "n1", NewEstimator(nil)},
-			{add, "n1", NewEstimator(nil)},
+			{add, "n1", &Estimator{Nodes: nil}},
+			{add, "n1", &Estimator{Nodes: nil}},
 		}, 1},
 		{"0,1,2", &Estimators{}, []action{
-			{add, "n1", NewEstimator(nil)},
-			{add, "n2", NewEstimator(nil)},
+			{add, "n1", &Estimator{Nodes: nil}},
+			{add, "n2", &Estimator{Nodes: nil}},
 		}, 2},
 		{"0,1,0", &Estimators{}, []action{
-			{add, "n1", NewEstimator(nil)},
+			{add, "n1", &Estimator{Nodes: nil}},
 			{del, "n1", nil},
 		}, 0},
 		{"0,1,1", &Estimators{}, []action{
-			{add, "n1", NewEstimator(nil)},
+			{add, "n1", &Estimator{Nodes: nil}},
 			{del, "n2", nil},
 		}, 1},
 	}

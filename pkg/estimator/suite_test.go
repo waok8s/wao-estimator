@@ -56,8 +56,7 @@ var _ = Describe("Server/Client", func() {
 	})
 
 	It("should fail to access with invalid URL", func() {
-		es = &estimator.Estimators{}
-		sv = estimator.NewServer(es)
+		sv = &estimator.Server{}
 		h, err := sv.Handler()
 		Expect(err).NotTo(HaveOccurred())
 		hsv = &http.Server{Addr: addr, Handler: h}
@@ -71,7 +70,7 @@ var _ = Describe("Server/Client", func() {
 
 	It("shoud add/delete; no authentication", func() {
 		es = &estimator.Estimators{}
-		sv = estimator.NewServer(es)
+		sv = &estimator.Server{Estimators: es}
 		h, err := sv.Handler()
 		Expect(err).NotTo(HaveOccurred())
 		hsv = &http.Server{Addr: addr, Handler: h}
@@ -85,13 +84,13 @@ var _ = Describe("Server/Client", func() {
 		testAccess(httpAddr, "", "hoge", "fuga", false)
 
 		// default/default
-		ok := es.Add(client.ObjectKey{Namespace: "default", Name: "default"}.String(), estimator.NewEstimator(&estimator.Nodes{}))
+		ok := es.Add(client.ObjectKey{Namespace: "default", Name: "default"}.String(), &estimator.Estimator{Nodes: nil})
 		Expect(ok).To(BeTrue())
 		testAccess(httpAddr, "", "default", "default", true)
 		testAccess(httpAddr, "", "hoge", "fuga", false)
 
 		// default/default, hoge/fuga
-		ok = es.Add(client.ObjectKey{Namespace: "hoge", Name: "fuga"}.String(), estimator.NewEstimator(&estimator.Nodes{}))
+		ok = es.Add(client.ObjectKey{Namespace: "hoge", Name: "fuga"}.String(), &estimator.Estimator{Nodes: nil})
 		Expect(ok).To(BeTrue())
 		testAccess(httpAddr, "", "default", "default", true)
 		testAccess(httpAddr, "", "hoge", "fuga", true)
@@ -118,7 +117,7 @@ var _ = Describe("Server/Client", func() {
 		key2 := "hogefuga"
 
 		es = &estimator.Estimators{}
-		sv = estimator.NewServer(es)
+		sv = &estimator.Server{Estimators: es}
 		h, err := sv.HandlerWithAuthFn(estimator.AuthFnAPIKey(map[string]struct{}{key1: {}, key2: {}}))
 		Expect(err).NotTo(HaveOccurred())
 		hsv = &http.Server{Addr: addr, Handler: h}
@@ -134,7 +133,7 @@ var _ = Describe("Server/Client", func() {
 		testAccess(httpAddr, key2, "default", "default", false)
 
 		// Estimators: default/default
-		ok := es.Add(client.ObjectKey{Namespace: "default", Name: "default"}.String(), estimator.NewEstimator(&estimator.Nodes{}))
+		ok := es.Add(client.ObjectKey{Namespace: "default", Name: "default"}.String(), &estimator.Estimator{Nodes: nil})
 		Expect(ok).To(BeTrue())
 		testAccess(httpAddr, "", "default", "default", false)
 		testAccess(httpAddr, "xxx", "default", "default", false)

@@ -9,18 +9,21 @@ import (
 
 type Estimator struct {
 	Nodes *Nodes
+	init  sync.Once
 }
 
-func NewEstimator(nodes *Nodes) *Estimator {
-	if nodes == nil {
-		nodes = &Nodes{}
-	}
-	return &Estimator{Nodes: nodes}
+func (e *Estimator) initOnce() {
+	e.init.Do(func() {
+		if e.Nodes == nil {
+			e.Nodes = &Nodes{}
+		}
+	})
 }
 
 // EstimatePowerConsumption is a thread-safe function that
 // estimates power consumption with the given parameters.
 func (e *Estimator) EstimatePowerConsumption(ctx context.Context, cpuMilli, numWorkloads int) ([]float64, error) {
+	e.initOnce()
 
 	// init wattMatrix[node][workload]
 	wattMatrix := make([][]float64, e.Nodes.Len())
@@ -49,6 +52,8 @@ func (e *Estimator) EstimatePowerConsumption(ctx context.Context, cpuMilli, numW
 }
 
 func (e *Estimator) stop() {
+	e.initOnce()
+
 	lg.Info().Msgf("Estimator.stop()")
 	e.Nodes.Range(func(k string, _ *Node) bool {
 		e.Nodes.Delete(k)

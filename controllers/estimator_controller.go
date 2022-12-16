@@ -37,16 +37,16 @@ func (r *EstimatorReconciler) SetupWithManager(mgr ctrl.Manager) error {
 }
 
 func (r *EstimatorReconciler) startEstimatorServer() error {
-	addr := net.JoinHostPort("", estimator.ServerDefaultPort)
 
-	r.estimators = &estimator.Estimators{}
+	sv := &estimator.Server{Estimators: &estimator.Estimators{}}
 
-	h, err := estimator.NewServer(r.estimators).Handler(middleware.RequestID, middleware.RealIP, middleware.Logger, middleware.Recoverer, middleware.Heartbeat("/healthz"))
+	r.estimators = sv.Estimators
+	h, err := sv.Handler(middleware.RequestID, middleware.RealIP, middleware.Logger, middleware.Recoverer, middleware.Heartbeat("/healthz"))
 	if err != nil {
 		return err
 	}
 
-	go http.ListenAndServe(addr, h)
+	go http.ListenAndServe(net.JoinHostPort("", estimator.ServerDefaultPort), h)
 
 	return nil
 }
@@ -86,7 +86,7 @@ func (r *EstimatorReconciler) Reconcile(ctx context.Context, req ctrl.Request) (
 	if err != nil {
 		return ctrl.Result{}, err
 	}
-	e := estimator.NewEstimator(nodes)
+	e := &estimator.Estimator{Nodes: nodes}
 	if ok := r.estimators.Add(req.String(), e); !ok {
 		err := fmt.Errorf("r.estimators.Add() returned false: %s", req.String())
 		lg.Error(err, "unable to add estimator.Estimator")

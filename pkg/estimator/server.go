@@ -5,6 +5,7 @@ import (
 	"errors"
 	"fmt"
 	"net/http"
+	"sync"
 
 	middleware "github.com/deepmap/oapi-codegen/pkg/chi-middleware"
 	"github.com/getkin/kin-openapi/openapi3filter"
@@ -18,18 +19,22 @@ const ServerDefaultPort = "5656"
 
 type Server struct {
 	Estimators *Estimators
+	init       sync.Once
+}
+
+func (s *Server) initOnce() {
+	s.init.Do(func() {
+		if s.Estimators == nil {
+			s.Estimators = &Estimators{}
+		}
+	})
 }
 
 var _ api.StrictServerInterface = (*Server)(nil)
 
-func NewServer(estimators *Estimators) *Server {
-	if estimators == nil {
-		estimators = &Estimators{}
-	}
-	return &Server{Estimators: estimators}
-}
-
 func (s *Server) PostNamespacesNsEstimatorsNameValuesPowerconsumption(ctx context.Context, request api.PostNamespacesNsEstimatorsNameValuesPowerconsumptionRequestObject) (api.PostNamespacesNsEstimatorsNameValuesPowerconsumptionResponseObject, error) {
+	s.initOnce()
+
 	e, ok := s.Estimators.Get(client.ObjectKey{Namespace: request.Ns, Name: request.Name}.String())
 	if !ok {
 		return api.PostNamespacesNsEstimatorsNameValuesPowerconsumption404Response{}, nil
@@ -77,6 +82,8 @@ func (s *Server) Handler(middlewares ...func(http.Handler) http.Handler) (http.H
 }
 
 func (s *Server) HandlerWithAuthFn(authFn AuthenticationFunc, middlewares ...func(http.Handler) http.Handler) (http.Handler, error) {
+	s.initOnce()
+
 	spec, err := api.GetSwagger()
 	if err != nil {
 		return nil, err

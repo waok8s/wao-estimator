@@ -33,10 +33,11 @@ func main() {
 	ns := &estimator.Nodes{}
 	ns.Add("n1", estimator.NewNode("n1", nil, 30*time.Second, nil))
 	es := &estimator.Estimators{}
-	if ok := es.Add("default/default", estimator.NewEstimator(ns)); !ok {
+	if ok := es.Add("default/default", &estimator.Estimator{Nodes: ns}); !ok {
 		panic("es.Add not ok")
 	}
-	h, err := estimator.NewServer(es).HandlerWithAuthFn(authFn, middleware.RequestID, middleware.RealIP, middleware.Logger, middleware.Recoverer, middleware.Heartbeat("/healthz"))
+	sv := &estimator.Server{Estimators: es}
+	h, err := sv.HandlerWithAuthFn(authFn, middleware.RequestID, middleware.RealIP, middleware.Logger, middleware.Recoverer, middleware.Heartbeat("/healthz"))
 	if err != nil {
 		panic(err)
 	}
