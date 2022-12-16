@@ -38,6 +38,7 @@ func TestFakeNodeMonitor_FetchStatus(t *testing.T) {
 		want    NodeStatus
 		wantErr bool
 	}{
+		{"FetchFunc=nil", fields{nil}, args{context.Background()}, NodeStatus{}, true},
 		{"ok", fields{getFnCopy(testNS1, nil)}, args{context.Background()}, testNS1, false},
 		{"err", fields{getFnCopy(NodeStatus{}, errors.New(""))}, args{context.Background()}, NodeStatus{}, true},
 	}

@@ -21,6 +21,10 @@ func TestFakePCPredictor_Predict(t *testing.T) {
 		wantWatt float64
 		wantErr  bool
 	}{
+		{"PredictFunc=nil", fields{nil}, args{context.Background(), 2000, NodeStatus{
+			CPUUsages:    [][]float64{{30.0}},
+			AmbientTemps: []float64{20.0},
+		}}, 0.0, true},
 		{"70", fields{PredictPCFnDummy}, args{context.Background(), 2000, NodeStatus{
 			CPUUsages:    [][]float64{{30.0}},
 			AmbientTemps: []float64{20.0},
