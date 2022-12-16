@@ -205,11 +205,11 @@ func TestNode_FetchStatus(t *testing.T) {
 		}, NodeStatus{}, true},
 		{"nm!=nil", &Node{
 			Name:    "n1",
-			monitor: &FakeNodeMonitor{GetFunc: func(context.Context) (NodeStatus, error) { return testNS1, nil }},
+			monitor: &FakeNodeMonitor{FetchFunc: func(context.Context) (NodeStatus, error) { return testNS1, nil }},
 		}, testNS1, false},
 		{"failed", &Node{
 			Name:    "n1",
-			monitor: &FakeNodeMonitor{GetFunc: func(context.Context) (NodeStatus, error) { return NodeStatus{}, ErrNodeMonitor }},
+			monitor: &FakeNodeMonitor{FetchFunc: func(context.Context) (NodeStatus, error) { return NodeStatus{}, ErrNodeMonitor }},
 		}, NodeStatus{}, true},
 	}
 	for _, tt := range tests {

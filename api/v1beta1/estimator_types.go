@@ -16,6 +16,7 @@ type NodeMonitorType string
 
 const (
 	NodeMonitorTypeNone         = "None"
+	NodeMonitorTypeFake         = "Fake"
 	NodeMonitorTypeIPMIExporter = "IPMIExporter"
 	NodeMonitorTypeRedfish      = "Redfish"
 )
@@ -24,6 +25,7 @@ type PowerConsumptionPredictorType string
 
 const (
 	PowerConsumptionPredictorTypeNone      = "None"
+	PowerConsumptionPredictorTypeFake      = "Fake"
 	PowerConsumptionPredictorTypeMLServer  = "MLServer"
 	PowerConsumptionPredictorTypeTFServing = "TFServing"
 )

@@ -96,6 +96,9 @@ func (r *EstimatorReconciler) Reconcile(ctx context.Context, req ctrl.Request) (
 	return ctrl.Result{}, nil
 }
 
+var FakeNodeMonitorFetchFunc func(ctx context.Context) (estimator.NodeStatus, error)
+var FakePCPredictorPredictFunc func(ctx context.Context, requestCPUMilli int, status estimator.NodeStatus) (watt float64, err error)
+
 func (r *EstimatorReconciler) reconcileEstimatorNodes(ctx context.Context, estConf *v1beta1.Estimator) (*estimator.Nodes, error) {
 	lg := log.FromContext(ctx)
 	lg.Info("reconcileEstimatorNodes")
@@ -115,6 +118,8 @@ func (r *EstimatorReconciler) reconcileEstimatorNodes(ctx context.Context, estCo
 		nmType := v1beta1.NodeMonitorType(getFieldValue(estConf.Spec.NodeMonitor.Type, &node))
 		switch nmType {
 		case v1beta1.NodeMonitorTypeNone:
+		case v1beta1.NodeMonitorTypeFake:
+			nm = &estimator.FakeNodeMonitor{FetchFunc: FakeNodeMonitorFetchFunc}
 		case v1beta1.NodeMonitorTypeIPMIExporter:
 			lg.Info(fmt.Sprintf("NodeMonitorType=%v is not implemented", nmType))
 		case v1beta1.NodeMonitorTypeRedfish:
@@ -131,6 +136,8 @@ func (r *EstimatorReconciler) reconcileEstimatorNodes(ctx context.Context, estCo
 		pcpType := v1beta1.PowerConsumptionPredictorType(getFieldValue(estConf.Spec.PowerConsumptionPredictor.Type, &node))
 		switch pcpType {
 		case v1beta1.PowerConsumptionPredictorTypeNone:
+		case v1beta1.PowerConsumptionPredictorTypeFake:
+			pcp = &estimator.FakePCPredictor{PredictFunc: FakePCPredictorPredictFunc}
 		case v1beta1.PowerConsumptionPredictorTypeMLServer:
 			// TODO
 			v := &estimator.MLServerPCPredictor{}

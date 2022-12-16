@@ -181,7 +181,7 @@ var _ = Describe("Node/Nodes", func() {
 	ctx := context.Background()
 
 	nm0 := &estimator.FakeNodeMonitor{
-		GetFunc: func(ctx context.Context) (estimator.NodeStatus, error) {
+		FetchFunc: func(ctx context.Context) (estimator.NodeStatus, error) {
 			time.Sleep(50 * time.Millisecond)
 			return estimator.NodeStatus{
 				Timestamp:      time.Now(),
@@ -195,7 +195,7 @@ var _ = Describe("Node/Nodes", func() {
 		},
 	}
 	nm1 := &estimator.FakeNodeMonitor{
-		GetFunc: func(ctx context.Context) (estimator.NodeStatus, error) {
+		FetchFunc: func(ctx context.Context) (estimator.NodeStatus, error) {
 			time.Sleep(50 * time.Millisecond)
 			return estimator.NodeStatus{}, estimator.ErrNodeMonitor
 		},

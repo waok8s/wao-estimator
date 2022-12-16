@@ -26,7 +26,7 @@ func getFnCopy(s NodeStatus, err error) func(ctx context.Context) (NodeStatus, e
 
 func TestFakeNodeMonitor_FetchStatus(t *testing.T) {
 	type fields struct {
-		GetFunc func(ctx context.Context) (NodeStatus, error)
+		FetchFunc func(ctx context.Context) (NodeStatus, error)
 	}
 	type args struct {
 		ctx context.Context
@@ -44,7 +44,7 @@ func TestFakeNodeMonitor_FetchStatus(t *testing.T) {
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
 			m := &FakeNodeMonitor{
-				GetFunc: tt.fields.GetFunc,
+				FetchFunc: tt.fields.FetchFunc,
 			}
 			got, err := m.FetchStatus(tt.args.ctx)
 			if (err != nil) != tt.wantErr {

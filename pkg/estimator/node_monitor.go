@@ -10,13 +10,16 @@ type NodeMonitor interface {
 }
 
 type FakeNodeMonitor struct {
-	GetFunc func(ctx context.Context) (NodeStatus, error)
+	FetchFunc func(ctx context.Context) (NodeStatus, error)
 }
 
 var _ NodeMonitor = (*FakeNodeMonitor)(nil)
 
 func (m *FakeNodeMonitor) FetchStatus(ctx context.Context) (NodeStatus, error) {
-	return m.GetFunc(ctx)
+	if m.FetchFunc == nil {
+		return NodeStatus{}, fmt.Errorf("FetchFunc not set (%w)", ErrNodeStatus)
+	}
+	return m.FetchFunc(ctx)
 }
 
 type RedfishNodeMonitor struct {

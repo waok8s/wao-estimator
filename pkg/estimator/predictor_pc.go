@@ -16,6 +16,9 @@ type FakePCPredictor struct {
 var _ PowerConsumptionPredictor = (*FakePCPredictor)(nil)
 
 func (p *FakePCPredictor) Predict(ctx context.Context, requestCPUMilli int, status NodeStatus) (watt float64, err error) {
+	if p.PredictFunc == nil {
+		return 0.0, fmt.Errorf("PredictFunc not set (%w)", ErrPCPredictor)
+	}
 	return p.PredictFunc(ctx, requestCPUMilli, status)
 }
 
