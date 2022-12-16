@@ -14,6 +14,7 @@ import (
 	"k8s.io/client-go/rest"
 	ctrl "sigs.k8s.io/controller-runtime"
 	"sigs.k8s.io/controller-runtime/pkg/client"
+	"sigs.k8s.io/controller-runtime/pkg/controller/controllerutil"
 	"sigs.k8s.io/controller-runtime/pkg/envtest"
 	logf "sigs.k8s.io/controller-runtime/pkg/log"
 	"sigs.k8s.io/controller-runtime/pkg/log/zap"
@@ -164,6 +165,51 @@ var _ = Describe("Estimator controller", func() {
 		Eventually(func() int {
 			return estimatorReconciler.GetEstimators().Len()
 		}).Should(Equal(0))
+	})
 
+	It("should update estimator.Estimator", func() {
+		ctx := context.Background()
+
+		// Estimators: empty
+		Expect(estimatorReconciler.GetEstimators().Len()).To(Equal(0))
+
+		// Estimators: default/hoge
+		ec1 := testEC1
+		err := k8sClient.Create(ctx, &ec1)
+		Expect(err).NotTo(HaveOccurred())
+		Eventually(func() int {
+			return estimatorReconciler.GetEstimators().Len()
+		}).Should(Equal(1))
+
+		// Estimators: default/hoge(modified#1)
+		Eventually(func() error {
+			return k8sClient.Get(ctx, client.ObjectKeyFromObject(&ec1), &ec1)
+		}).Should(Succeed())
+		Expect(ec1.Spec.NodeMonitor).To(BeNil())
+		op, err := ctrl.CreateOrUpdate(ctx, k8sClient, &ec1, func() error {
+			ec1.Spec.NodeMonitor = &v1beta1.NodeMonitor{}
+			return nil
+		})
+		Expect(op).To(Equal(controllerutil.OperationResultUpdated))
+		Expect(err).NotTo(HaveOccurred())
+
+		// Estimators: default/hoge(modified#2)
+		Eventually(func() error {
+			return k8sClient.Get(ctx, client.ObjectKeyFromObject(&ec1), &ec1)
+		}).Should(Succeed())
+		Expect(ec1.Spec.NodeMonitor).NotTo(BeNil())
+		op, err = ctrl.CreateOrUpdate(ctx, k8sClient, &ec1, func() error {
+			ec1.Spec.NodeMonitor.RefreshInterval = &metav1.Duration{Duration: v1beta1.DefaultNodeMonitorRefreshInterval}
+			return nil
+		})
+		Expect(op).To(Equal(controllerutil.OperationResultUpdated))
+		Expect(err).NotTo(HaveOccurred())
+
+		// Estimators: empty
+		err = k8sClient.Delete(ctx, &ec1)
+		Expect(err).NotTo(HaveOccurred())
+		Eventually(func() int {
+			return estimatorReconciler.GetEstimators().Len()
+		}).Should(Equal(1))
 	})
 })

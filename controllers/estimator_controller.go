@@ -81,12 +81,23 @@ func (r *EstimatorReconciler) Reconcile(ctx context.Context, req ctrl.Request) (
 		return ctrl.Result{}, nil
 	}
 
-	// init estimator.Estimator
-	nodes, err := r.reconcileEstimatorNodes(ctx, &estConf)
+	// setup estimator.Node
+	estNodeList, err := r.reconcileEstimatorNodes(ctx, &estConf)
 	if err != nil {
 		return ctrl.Result{}, err
 	}
-	e := &estimator.Estimator{Nodes: nodes}
+
+	// update estimator.Estimator
+	// TODO: check diff instead of replacing whole estimator.Estimator to reduce hardware resource usage
+	estNodes := &estimator.Nodes{}
+	for _, en := range estNodeList {
+		if ok := estNodes.Add(en.Name, en); !ok {
+			err := fmt.Errorf("r.estNodes.Add() returned false: %s", en.Name)
+			lg.Error(err, "duplicate node name found")
+		}
+	}
+	e := &estimator.Estimator{Nodes: estNodes}
+	r.estimators.Delete(req.String())
 	if ok := r.estimators.Add(req.String(), e); !ok {
 		err := fmt.Errorf("r.estimators.Add() returned false: %s", req.String())
 		lg.Error(err, "unable to add estimator.Estimator")
@@ -99,7 +110,7 @@ func (r *EstimatorReconciler) Reconcile(ctx context.Context, req ctrl.Request) (
 var FakeNodeMonitorFetchFunc func(ctx context.Context) (estimator.NodeStatus, error)
 var FakePCPredictorPredictFunc func(ctx context.Context, requestCPUMilli int, status estimator.NodeStatus) (watt float64, err error)
 
-func (r *EstimatorReconciler) reconcileEstimatorNodes(ctx context.Context, estConf *v1beta1.Estimator) (*estimator.Nodes, error) {
+func (r *EstimatorReconciler) reconcileEstimatorNodes(ctx context.Context, estConf *v1beta1.Estimator) ([]*estimator.Node, error) {
 	lg := log.FromContext(ctx)
 	lg.Info("reconcileEstimatorNodes")
 
@@ -108,7 +119,7 @@ func (r *EstimatorReconciler) reconcileEstimatorNodes(ctx context.Context, estCo
 		return nil, err
 	}
 
-	var estNodes estimator.Nodes
+	var estNodeList []*estimator.Node
 
 	for _, node := range nodeList.Items {
 		name := node.Name
@@ -150,12 +161,10 @@ func (r *EstimatorReconciler) reconcileEstimatorNodes(ctx context.Context, estCo
 		lg.Info(fmt.Sprintf("spec.powerConsumptionPredictor.Type=%v pcp=%+v", pcpType, pcp))
 
 		estNode := estimator.NewNode(name, nm, estConf.Spec.NodeMonitor.RefreshInterval.Duration, pcp)
-		if ok := estNodes.Add(name, estNode); !ok {
-			lg.Error(fmt.Errorf("unable to add node to estimator.Nodes name=%v", name), "duplicate node name found")
-		}
+		estNodeList = append(estNodeList, estNode)
 	}
 
-	return &estNodes, nil
+	return estNodeList, nil
 }
 
 func getFieldValue(f v1beta1.Field, node *corev1.Node) string {
