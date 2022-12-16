@@ -1,6 +1,7 @@
 package main
 
 import (
+	"fmt"
 	"net"
 	"net/http"
 	"time"
@@ -22,7 +23,7 @@ func main() {
 
 	apikeys := map[string]struct{}{}
 	host := "localhost"
-	port := estimator.ServerDefaultPort
+	port := fmt.Sprint(estimator.ServerDefaultPort)
 	addr := net.JoinHostPort(host, port)
 
 	authFn := estimator.AuthFnAPIKey(apikeys)

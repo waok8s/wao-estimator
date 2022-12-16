@@ -35,7 +35,9 @@ func init() {
 }
 
 var (
-	wait = func() { time.Sleep(100 * time.Millisecond) }
+	wait     = func() { time.Sleep(100 * time.Millisecond) }
+	testHost = "localhost"
+	testPort = fmt.Sprint(estimator.ServerDefaultPort + 1)
 )
 
 var _ = Describe("Server/Client", func() {
@@ -43,7 +45,7 @@ var _ = Describe("Server/Client", func() {
 	var es *estimator.Estimators
 	var sv *estimator.Server
 	var hsv *http.Server
-	addr := net.JoinHostPort("localhost", estimator.ServerDefaultPort)
+	addr := net.JoinHostPort(testHost, testPort)
 	httpAddr := "http://" + addr
 
 	AfterEach(func() {

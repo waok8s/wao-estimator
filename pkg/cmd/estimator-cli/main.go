@@ -102,7 +102,7 @@ func csv2Ints(s string) ([]int, error) {
 
 func main() {
 	nn := flag.String("n", "default/default", "Estimator Namespace/Name")
-	addr := flag.String("a", fmt.Sprintf("http://localhost:%s", estimator.ServerDefaultPort), "Estimator address")
+	addr := flag.String("a", fmt.Sprintf("http://localhost:%d", estimator.ServerDefaultPort), "Estimator address")
 	p := flag.String("p", "500,5", "request parameters")
 	h := flag.String("H", "", "a request header e.g. 'X-API-KEY: hoge'")
 	flag.BoolVar(&verbose, "v", false, "print detailed logs")

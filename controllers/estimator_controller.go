@@ -46,7 +46,7 @@ func (r *EstimatorReconciler) startEstimatorServer() error {
 		return err
 	}
 
-	go http.ListenAndServe(net.JoinHostPort("", estimator.ServerDefaultPort), h)
+	go http.ListenAndServe(net.JoinHostPort("", fmt.Sprint(estimator.ServerDefaultPort)), h)
 
 	return nil
 }

@@ -15,7 +15,7 @@ import (
 	"github.com/Nedopro2022/wao-estimator/pkg/estimator/api"
 )
 
-const ServerDefaultPort = "5656"
+const ServerDefaultPort = 5656
 
 type Server struct {
 	Estimators *Estimators
