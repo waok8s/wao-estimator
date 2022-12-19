@@ -37,12 +37,24 @@ paths:
                 $ref: "#/components/schemas/PowerConsumption"
         "400":
           description: Invalid PowerCunsumption request supplied.
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Error"
         "401":
           description: Unauthorized.
         "404":
           description: Estimator not found.
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Error"
         "500":
           description: Unable to operate.
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Error"
     parameters:
       - name: ns
         in: path
@@ -81,9 +93,8 @@ components:
         num_workloads:
           type: integer
           examples:
-            - 0
             - 1
-            - 15
+            - 5
           description: The amount of workloads have to be allocated.
         watt_increases:
           type: array
@@ -91,7 +102,20 @@ components:
             type: number
             format: double
           examples:
-            - []
             - [5.0]
-            - [5.0, 10.0, 15.0, 20.0, 15.0]
+            - [5.0, 10.0, 15.0, 20.0, 25.0]
           description: The estimated power increase per workload.
+    Error:
+      type: object
+      required:
+        - code
+        - message
+      properties:
+        code:
+          type: string
+          description: A code representing the type of the error, same as error name in Go.
+        message:
+          type: string
+          examples:
+            - invalid request
+          description: A message detailing the error.

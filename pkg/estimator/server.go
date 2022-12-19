@@ -37,17 +37,34 @@ func (s *Server) PostNamespacesNsEstimatorsNameValuesPowerconsumption(ctx contex
 
 	e, ok := s.Estimators.Get(client.ObjectKey{Namespace: request.Ns, Name: request.Name}.String())
 	if !ok {
-		return api.PostNamespacesNsEstimatorsNameValuesPowerconsumption404Response{}, nil
+		return api.PostNamespacesNsEstimatorsNameValuesPowerconsumption404JSONResponse{
+			Code:    ErrServerEstimatorNotFound.Error(),
+			Message: fmt.Sprintf("estimator %v/%v not found", request.Ns, request.Name),
+		}, nil
 	}
 	wattIncrease, err := e.EstimatePowerConsumption(ctx, request.Body.CpuMilli, request.Body.NumWorkloads)
 	if err != nil {
 		switch {
-		case errors.Is(err, ErrInvalidRequest):
-			return api.PostNamespacesNsEstimatorsNameValuesPowerconsumption400Response{}, nil
-		case errors.Is(err, ErrEstimator):
-			return api.PostNamespacesNsEstimatorsNameValuesPowerconsumption500Response{}, nil
+		// 400
+		case errors.Is(err, ErrEstimatorInvalidRequest):
+			return api.PostNamespacesNsEstimatorsNameValuesPowerconsumption400JSONResponse{
+				Code:    ErrEstimatorInvalidRequest.Error(),
+				Message: err.Error(),
+			}, nil
+		// 500
 		default:
-			return api.PostNamespacesNsEstimatorsNameValuesPowerconsumption500Response{}, nil
+			unwrappedErr := err
+			if _, ok := getErrorFromCode[err.Error()]; !ok {
+				// wrapped or unexpected
+				unwrappedErr = errors.Unwrap(err)
+				if unwrappedErr == nil {
+					unwrappedErr = ErrUnexpected
+				}
+			}
+			return api.PostNamespacesNsEstimatorsNameValuesPowerconsumption500JSONResponse{
+				Code:    unwrappedErr.Error(),
+				Message: err.Error(),
+			}, nil
 		}
 	}
 	return api.PostNamespacesNsEstimatorsNameValuesPowerconsumption200JSONResponse{

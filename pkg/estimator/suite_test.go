@@ -2,7 +2,6 @@ package estimator_test
 
 import (
 	"context"
-	"errors"
 	"fmt"
 	"net"
 	"net/http"
@@ -30,7 +29,7 @@ var _ = AfterSuite(func() {
 })
 
 func init() {
-	SetDefaultEventuallyTimeout(3 * time.Second)
+	SetDefaultEventuallyTimeout(1 * time.Second)
 	SetDefaultEventuallyPollingInterval(100 * time.Millisecond)
 }
 
@@ -67,7 +66,7 @@ var _ = Describe("Server/Client", func() {
 		}()
 		wait()
 
-		testAccess(addr, "", "default", "default", false)
+		testAccess(addr, "", "default", "default", nil, true)
 	})
 
 	It("shoud add/delete; no authentication", func() {
@@ -82,35 +81,35 @@ var _ = Describe("Server/Client", func() {
 		wait()
 
 		// empty
-		testAccess(httpAddr, "", "default", "default", false)
-		testAccess(httpAddr, "", "hoge", "fuga", false)
+		testAccess(httpAddr, "", "default", "default", estimator.ErrServerEstimatorNotFound, false)
+		testAccess(httpAddr, "", "hoge", "fuga", estimator.ErrServerEstimatorNotFound, false)
 
 		// default/default
 		ok := es.Add(client.ObjectKey{Namespace: "default", Name: "default"}.String(), &estimator.Estimator{Nodes: nil})
 		Expect(ok).To(BeTrue())
-		testAccess(httpAddr, "", "default", "default", true)
-		testAccess(httpAddr, "", "hoge", "fuga", false)
+		testAccess(httpAddr, "", "default", "default", estimator.ErrEstimatorNoNodesAvailable, false)
+		testAccess(httpAddr, "", "hoge", "fuga", estimator.ErrServerEstimatorNotFound, false)
 
 		// default/default, hoge/fuga
 		ok = es.Add(client.ObjectKey{Namespace: "hoge", Name: "fuga"}.String(), &estimator.Estimator{Nodes: nil})
 		Expect(ok).To(BeTrue())
-		testAccess(httpAddr, "", "default", "default", true)
-		testAccess(httpAddr, "", "hoge", "fuga", true)
+		testAccess(httpAddr, "", "default", "default", estimator.ErrEstimatorNoNodesAvailable, false)
+		testAccess(httpAddr, "", "hoge", "fuga", estimator.ErrEstimatorNoNodesAvailable, false)
 
 		// default/default, hoge/fuga
 		es.Delete(client.ObjectKey{Namespace: "foo", Name: "bar"}.String())
-		testAccess(httpAddr, "", "default", "default", true)
-		testAccess(httpAddr, "", "hoge", "fuga", true)
+		testAccess(httpAddr, "", "default", "default", estimator.ErrEstimatorNoNodesAvailable, false)
+		testAccess(httpAddr, "", "hoge", "fuga", estimator.ErrEstimatorNoNodesAvailable, false)
 
 		// default/default
 		es.Delete(client.ObjectKey{Namespace: "hoge", Name: "fuga"}.String())
-		testAccess(httpAddr, "", "default", "default", true)
-		testAccess(httpAddr, "", "hoge", "fuga", false)
+		testAccess(httpAddr, "", "default", "default", estimator.ErrEstimatorNoNodesAvailable, false)
+		testAccess(httpAddr, "", "hoge", "fuga", estimator.ErrServerEstimatorNotFound, false)
 
 		// empty
 		es.Delete(client.ObjectKey{Namespace: "default", Name: "default"}.String())
-		testAccess(httpAddr, "", "default", "default", false)
-		testAccess(httpAddr, "", "hoge", "fuga", false)
+		testAccess(httpAddr, "", "default", "default", estimator.ErrServerEstimatorNotFound, false)
+		testAccess(httpAddr, "", "hoge", "fuga", estimator.ErrServerEstimatorNotFound, false)
 	})
 
 	It("should access; with X-API-KEY authentication", func() {
@@ -129,29 +128,30 @@ var _ = Describe("Server/Client", func() {
 		wait()
 
 		// Estimators: empty
-		testAccess(httpAddr, "", "default", "default", false)
-		testAccess(httpAddr, "xxx", "default", "default", false)
-		testAccess(httpAddr, key1, "default", "default", false)
-		testAccess(httpAddr, key2, "default", "default", false)
+		testAccess(httpAddr, "", "default", "default", estimator.ErrClientUnauthorized, false)
+		testAccess(httpAddr, "xxx", "default", "default", estimator.ErrClientUnauthorized, false)
+		testAccess(httpAddr, key1, "default", "default", estimator.ErrServerEstimatorNotFound, false)
+		testAccess(httpAddr, key2, "default", "default", estimator.ErrServerEstimatorNotFound, false)
 
 		// Estimators: default/default
 		ok := es.Add(client.ObjectKey{Namespace: "default", Name: "default"}.String(), &estimator.Estimator{Nodes: nil})
 		Expect(ok).To(BeTrue())
-		testAccess(httpAddr, "", "default", "default", false)
-		testAccess(httpAddr, "xxx", "default", "default", false)
-		testAccess(httpAddr, key1, "default", "default", true)
-		testAccess(httpAddr, key2, "default", "default", true)
+		testAccess(httpAddr, "", "default", "default", estimator.ErrClientUnauthorized, false)
+		testAccess(httpAddr, "xxx", "default", "default", estimator.ErrClientUnauthorized, false)
+		testAccess(httpAddr, key1, "default", "default", estimator.ErrEstimatorNoNodesAvailable, false)
+		testAccess(httpAddr, key2, "default", "default", estimator.ErrEstimatorNoNodesAvailable, false)
 
 		// Estimators: empty
 		es.Delete(client.ObjectKey{Namespace: "default", Name: "default"}.String())
-		testAccess(httpAddr, "", "default", "default", false)
-		testAccess(httpAddr, "xxx", "default", "default", false)
-		testAccess(httpAddr, key1, "default", "default", false)
-		testAccess(httpAddr, key2, "default", "default", false)
+		testAccess(httpAddr, "", "default", "default", estimator.ErrClientUnauthorized, false)
+		testAccess(httpAddr, "xxx", "default", "default", estimator.ErrClientUnauthorized, false)
+		testAccess(httpAddr, key1, "default", "default", estimator.ErrServerEstimatorNotFound, false)
+		testAccess(httpAddr, key2, "default", "default", estimator.ErrServerEstimatorNotFound, false)
 	})
+
 })
 
-func testAccess(httpAddr, apiKey, ns, name string, want bool) {
+func testAccess(httpAddr, apiKey, ns, name string, wantAPIErr error, wantErr bool) {
 	opts := []estimator.ClientOption{estimator.ClientOptionGetRequestAsCurl(GinkgoWriter)}
 	if apiKey != "" {
 		opts = append(opts, estimator.ClientOptionAddRequestHeader(estimator.AuthFnAPIKeyRequestHeader, apiKey))
@@ -160,21 +160,33 @@ func testAccess(httpAddr, apiKey, ns, name string, want bool) {
 	Expect(err).NotTo(HaveOccurred())
 
 	testFn := func() error {
-		pc, err := cl.EstimatePowerConsumption(context.Background(), 500, 5)
-		if err != nil {
-			return fmt.Errorf("err != nil : %w", err)
+		pc, apiErr, err := cl.EstimatePowerConsumption(context.Background(), 500, 5)
+
+		if wantErr {
+			if err == nil || pc != nil || apiErr != nil {
+				return fmt.Errorf("wantErr=%v but got %v, pc=%v apiErr=%v", wantErr, err, pc, apiErr)
+			}
+			return nil
 		}
-		if pc == nil {
-			return errors.New("pc == nil")
+
+		if wantAPIErr != nil {
+			if apiErr == nil || pc != nil || err != nil {
+				return fmt.Errorf("wantAPIErr=%v but got %v, pc=%v err=%v", wantAPIErr, apiErr, pc, err)
+			}
+			return nil
 		}
-		return nil
+
+		if !wantErr && wantAPIErr == nil {
+			if pc == nil || apiErr != nil || err != nil {
+				return fmt.Errorf("want response but got nil, pc=%v, apiErr=%v, err=%v", pc, apiErr, err)
+			}
+			return nil
+		}
+
+		return fmt.Errorf("unexpected wantAPIErr=%v wantErr=%v pc=%v, apiErr=%v, err=%v", wantAPIErr, wantErr, pc, apiErr, err)
 	}
 
-	if want {
-		Eventually(testFn).Should(Succeed())
-	} else {
-		Eventually(testFn).ShouldNot(Succeed())
-	}
+	Eventually(testFn).Should(Succeed())
 }
 
 var _ = Describe("Node/Nodes", func() {

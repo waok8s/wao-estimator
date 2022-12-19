@@ -205,12 +205,13 @@ func (response PostNamespacesNsEstimatorsNameValuesPowerconsumption200JSONRespon
 	return json.NewEncoder(w).Encode(response)
 }
 
-type PostNamespacesNsEstimatorsNameValuesPowerconsumption400Response struct {
-}
+type PostNamespacesNsEstimatorsNameValuesPowerconsumption400JSONResponse Error
 
-func (response PostNamespacesNsEstimatorsNameValuesPowerconsumption400Response) VisitPostNamespacesNsEstimatorsNameValuesPowerconsumptionResponse(w http.ResponseWriter) error {
+func (response PostNamespacesNsEstimatorsNameValuesPowerconsumption400JSONResponse) VisitPostNamespacesNsEstimatorsNameValuesPowerconsumptionResponse(w http.ResponseWriter) error {
+	w.Header().Set("Content-Type", "application/json")
 	w.WriteHeader(400)
-	return nil
+
+	return json.NewEncoder(w).Encode(response)
 }
 
 type PostNamespacesNsEstimatorsNameValuesPowerconsumption401Response struct {
@@ -221,20 +222,22 @@ func (response PostNamespacesNsEstimatorsNameValuesPowerconsumption401Response) 
 	return nil
 }
 
-type PostNamespacesNsEstimatorsNameValuesPowerconsumption404Response struct {
-}
+type PostNamespacesNsEstimatorsNameValuesPowerconsumption404JSONResponse Error
 
-func (response PostNamespacesNsEstimatorsNameValuesPowerconsumption404Response) VisitPostNamespacesNsEstimatorsNameValuesPowerconsumptionResponse(w http.ResponseWriter) error {
+func (response PostNamespacesNsEstimatorsNameValuesPowerconsumption404JSONResponse) VisitPostNamespacesNsEstimatorsNameValuesPowerconsumptionResponse(w http.ResponseWriter) error {
+	w.Header().Set("Content-Type", "application/json")
 	w.WriteHeader(404)
-	return nil
+
+	return json.NewEncoder(w).Encode(response)
 }
 
-type PostNamespacesNsEstimatorsNameValuesPowerconsumption500Response struct {
-}
+type PostNamespacesNsEstimatorsNameValuesPowerconsumption500JSONResponse Error
 
-func (response PostNamespacesNsEstimatorsNameValuesPowerconsumption500Response) VisitPostNamespacesNsEstimatorsNameValuesPowerconsumptionResponse(w http.ResponseWriter) error {
+func (response PostNamespacesNsEstimatorsNameValuesPowerconsumption500JSONResponse) VisitPostNamespacesNsEstimatorsNameValuesPowerconsumptionResponse(w http.ResponseWriter) error {
+	w.Header().Set("Content-Type", "application/json")
 	w.WriteHeader(500)
-	return nil
+
+	return json.NewEncoder(w).Encode(response)
 }
 
 // StrictServerInterface represents all server handlers.

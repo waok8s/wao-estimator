@@ -2,7 +2,7 @@ package estimator
 
 import (
 	"context"
-	"errors"
+	"fmt"
 	"io"
 	"net/http"
 
@@ -14,6 +14,7 @@ import (
 
 type PowerConsumption = api.PowerConsumption
 type ClientOption = api.ClientOption
+type Error = api.Error
 
 func ClientOptionAddRequestHeader(k, v string) ClientOption {
 	return func(c *api.Client) error {
@@ -50,7 +51,7 @@ func NewClient(server string, estimatorNamespace, estimatorName string, opts ...
 	return &ec, nil
 }
 
-func (c *Client) EstimatePowerConsumption(ctx context.Context, cpuMilli, numWorkloads int) (*PowerConsumption, error) {
+func (c *Client) EstimatePowerConsumption(ctx context.Context, cpuMilli, numWorkloads int) (pc *PowerConsumption, apiErr *Error, requestErr error) {
 	body := api.PostNamespacesNsEstimatorsNameValuesPowerconsumptionJSONRequestBody{
 		CpuMilli:      cpuMilli,
 		NumWorkloads:  numWorkloads,
@@ -58,12 +59,20 @@ func (c *Client) EstimatePowerConsumption(ctx context.Context, cpuMilli, numWork
 	}
 	resp, err := c.c.PostNamespacesNsEstimatorsNameValuesPowerconsumptionWithResponse(ctx, c.e.Namespace, c.e.Name, body)
 	if err != nil {
-		return nil, err
+		return nil, nil, err
 	}
 	switch resp.StatusCode() {
 	case http.StatusOK:
-		return resp.JSON200, nil
+		return resp.JSON200, nil, nil
+	case http.StatusBadRequest:
+		return nil, resp.JSON400, nil
+	case http.StatusUnauthorized:
+		return nil, &api.Error{Code: ErrClientUnauthorized.Error(), Message: "client unauthorized"}, nil
+	case http.StatusNotFound:
+		return nil, resp.JSON404, nil
+	case http.StatusInternalServerError:
+		return nil, resp.JSON500, nil
 	default:
-		return nil, errors.New(resp.Status())
+		return nil, nil, fmt.Errorf("%v (%w)", resp.Status(), ErrUnexpected)
 	}
 }

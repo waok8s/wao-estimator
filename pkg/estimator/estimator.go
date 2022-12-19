@@ -2,6 +2,7 @@ package estimator
 
 import (
 	"context"
+	"fmt"
 	"math"
 	"sync"
 	"sync/atomic"
@@ -24,6 +25,10 @@ func (e *Estimator) initOnce() {
 // estimates power consumption with the given parameters.
 func (e *Estimator) EstimatePowerConsumption(ctx context.Context, cpuMilli, numWorkloads int) ([]float64, error) {
 	e.initOnce()
+
+	if e.Nodes.Len() == 0 {
+		return nil, fmt.Errorf("no nodes available (%w)", ErrEstimatorNoNodesAvailable)
+	}
 
 	// init wattMatrix[node][workload]
 	wattMatrix := make([][]float64, e.Nodes.Len())

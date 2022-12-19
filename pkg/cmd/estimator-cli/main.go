@@ -56,7 +56,7 @@ func vv(format string, a ...any) {
 	}
 }
 
-func reqPC(ctx context.Context, addr, hk, hv, ns, name string, cpuMilli, numWorkloads int) (*estimator.PowerConsumption, error) {
+func reqPC(ctx context.Context, addr, hk, hv, ns, name string, cpuMilli, numWorkloads int) (*estimator.PowerConsumption, *estimator.Error, error) {
 	vv("INFO: estimate power consumption addr=%s hk=%s hv=%s ns=%s name=%s cpu_milli=%d num_workloads=%d", addr, hk, hv, ns, name, cpuMilli, numWorkloads)
 	opts := []estimator.ClientOption{}
 	if hk != "" && hv != "" {
@@ -71,13 +71,13 @@ func reqPC(ctx context.Context, addr, hk, hv, ns, name string, cpuMilli, numWork
 	}
 	client, err := estimator.NewClient(addr, ns, name, opts...)
 	if err != nil {
-		return nil, err
+		return nil, nil, err
 	}
 	return client.EstimatePowerConsumption(ctx, cpuMilli, numWorkloads)
 }
 
-func print(r io.Writer, pc *estimator.PowerConsumption) error {
-	p, err := json.Marshal(pc)
+func print(r io.Writer, jsonStructPointer any) error {
+	p, err := json.Marshal(jsonStructPointer)
 	if err != nil {
 		return err
 	}
@@ -151,12 +151,16 @@ func main() {
 		}
 		ctx, cncl := context.WithTimeout(context.Background(), 3*time.Second)
 		defer cncl()
-		pc, err := reqPC(ctx, *addr, hk, hv, ns, name, params[0], params[1])
+		pc, apiErr, err := reqPC(ctx, *addr, hk, hv, ns, name, params[0], params[1])
 		if err != nil {
 			v("ERROR: %v", err)
 			os.Exit(1)
 		}
-		if err := print(os.Stdout, pc); err != nil {
+		if apiErr != nil {
+			v("ERROR:\n  code: %v\n  message: %v", apiErr.Code, apiErr.Message)
+			os.Exit(1)
+		}
+		if err := print(os.Stdout, &pc); err != nil {
 			v("ERROR: %v", err)
 			os.Exit(1)
 		}

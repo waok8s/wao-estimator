@@ -17,7 +17,7 @@ var _ NodeMonitor = (*FakeNodeMonitor)(nil)
 
 func (m *FakeNodeMonitor) FetchStatus(ctx context.Context) (NodeStatus, error) {
 	if m.FetchFunc == nil {
-		return NodeStatus{}, fmt.Errorf("FetchFunc not set (%w)", ErrNodeStatus)
+		return NodeStatus{}, fmt.Errorf("FetchFunc not set (%w)", ErrNodeMonitor)
 	}
 	return m.FetchFunc(ctx)
 }

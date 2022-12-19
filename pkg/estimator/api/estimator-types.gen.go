@@ -7,6 +7,15 @@ const (
 	ApiKeyAuthScopes = "apiKeyAuth.Scopes"
 )
 
+// Error defines model for Error.
+type Error struct {
+	// Code A code representing the type of the error, same as error name in Go.
+	Code string `json:"code"`
+
+	// Message A message detailing the error.
+	Message string `json:"message"`
+}
+
 // PowerConsumption defines model for PowerConsumption.
 type PowerConsumption struct {
 	// CpuMilli The amount of CPUs required by each workload.
