@@ -108,3 +108,59 @@ func Test_findLeastCosts(t *testing.T) {
 		})
 	}
 }
+
+var (
+	testCostsReq1BeforeToDiff = [][]float64{
+		{100.0, 111.0, 114.0, 114.0, 116.0, 130.0, 131.0},
+		{200.0, 211.0, 214.0, 215.0, 215.0, 222.0, 229.0},
+		{300.0, 310.0, 317.0, 319.0, 325.0, 326.0, 330.0},
+		{400.0, 472.0, 480.0, 492.0, 499.0, 499.0, 499.0},
+		{500.0, 511.0, 517.0, 519.0, 525.0, 527.0, 529.0},
+		{600.0, 614.0, 615.0, 615.0, 626.0, 631.0, 632.0},
+		{700.0, 716.0, 716.0, 716.0, 716.0, 724.0, 732.0},
+		{800.0, 829.0, 829.0, 829.0, 829.0, 829.0, 829.0},
+	}
+)
+
+func Test_toDiff(t *testing.T) {
+	type args struct {
+		vv [][]float64
+	}
+	tests := []struct {
+		name    string
+		args    args
+		want    [][]float64
+		wantErr bool
+	}{
+		{"testCostsReq1", args{testCostsReq1BeforeToDiff}, testCostsReq1, false},
+		{"3/3", args{[][]float64{
+			{100, 120, 140},
+			{200, 300, 400},
+			{500, 500, 500},
+		}}, [][]float64{
+			{20, 40},
+			{100, 200},
+			{0, 0},
+		}, false},
+		{"1/3", args{[][]float64{
+			{100, 120, 140},
+		}}, [][]float64{
+			{20, 40},
+		}, false},
+		{"1/1", args{[][]float64{{123}}}, [][]float64{{}}, false},
+		{"0/0", args{[][]float64{}}, [][]float64{}, false},
+		{"1/0 err", args{[][]float64{{}}}, nil, true},
+	}
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			got, err := toDiff(tt.args.vv)
+			if (err != nil) != tt.wantErr {
+				t.Errorf("toDiff() error = %v, wantErr %v", err, tt.wantErr)
+				return
+			}
+			if !reflect.DeepEqual(got, tt.want) {
+				t.Errorf("toDiff() = %v, want %v", got, tt.want)
+			}
+		})
+	}
+}

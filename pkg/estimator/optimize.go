@@ -87,12 +87,13 @@ func findLeastCostPatternsExhaustive(box, itemsPerBox int, costs [][]float64) (m
 		return sum == itemsPerBox
 	}
 
-	// n=14 m=3 (m+1)^n=4782969 len(vv)=105
-	// n=10 m=5 (m+1)^n=9765625 len(vv)=715
-	// n=6 m=14 (m+1)^n=7529536 len(vv)=8568
-	// n=5 m=25 (m+1)^n=9765625 len(vv)=20475
-	// n=3 m=101 (m+1)^n=1030301 len(vv)=5151
-	vv, err := enumerateNdigitMbaseNumbers(box, itemsPerBox+1, filterFn, 5000)
+	// n=14 m=3 m^n=4782969 len(vv)=105
+	// n=10 m=5 m^n=9765625 len(vv)=715
+	// n=6 m=14 m^n=7529536 len(vv)=8568
+	// n=5 m=25 m^n=9765625 len(vv)=20475
+	// n=3 m=101 m^n=1030301 len(vv)=5151
+	const expectedLen = 5000
+	vv, err := enumerateNdigitMbaseNumbers(box, itemsPerBox+1, filterFn, expectedLen)
 	if err != nil {
 		return 0.0, nil, err
 	}
@@ -149,4 +150,41 @@ func findLeastCosts(box, itemsPerBox int, costs [][]float64) (minCosts []float64
 		minCosts = append(minCosts, minCost)
 	}
 	return minCosts, nil
+}
+
+// toDiff returns a new matrix, make each row element
+// the difference from the first element in that row.
+// i.e. [[a0 a0+a1 a0+a2] [b0 b0+b1 b0+b2]] -> [[a1 a2] [b1 b2]]
+//
+// input:
+//
+//	[100 120 140]
+//	[200 300 400]
+//	[500 500 500]
+//
+// output:
+//
+//	[  20  40]
+//	[ 100 200]
+//	[   0   0]
+func toDiff(vv [][]float64) ([][]float64, error) {
+	row, col, err := is2DArray(vv)
+	if err != nil {
+		return nil, err
+	}
+	if row == 0 {
+		return [][]float64{}, nil
+	}
+	if col == 0 {
+		return nil, errors.New("col must be >0")
+	}
+	xx := make([][]float64, row)
+	for i := range xx {
+		xx[i] = make([]float64, col-1)
+		v0 := vv[i][0]
+		for j := 0; j < col-1; j++ {
+			xx[i][j] = vv[i][j+1] - v0
+		}
+	}
+	return xx, nil
 }

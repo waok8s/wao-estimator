@@ -32,10 +32,10 @@ func (e *Estimator) EstimatePowerConsumption(ctx context.Context, cpuMilli, numW
 	}
 
 	// prediction
-	for i := 0; i < numWorkloads; i++ {
+	for i := 0; i < numWorkloads+1; i++ {
 		j := 0
 		e.Nodes.Range(func(_ string, node *Node) bool {
-			watt, err := node.Predict(ctx, cpuMilli*(i+1), node.GetStatus())
+			watt, err := node.Predict(ctx, cpuMilli*(i), node.GetStatus())
 			if err != nil {
 				watt = math.MaxFloat64
 			}
@@ -46,12 +46,14 @@ func (e *Estimator) EstimatePowerConsumption(ctx context.Context, cpuMilli, numW
 	}
 
 	// search
-	minCosts, err := ComputeLeastCostsFn(e.Nodes.Len(), numWorkloads, wattMatrix)
+	wattDiffs, err := toDiff(wattMatrix)
 	if err != nil {
 		return nil, err
 	}
-
-	lg.Debug().Msgf("minCosts=%v", minCosts)
+	minCosts, err := ComputeLeastCostsFn(e.Nodes.Len(), numWorkloads, wattDiffs)
+	if err != nil {
+		return nil, err
+	}
 
 	return minCosts, nil
 }
