@@ -46,9 +46,14 @@ func (e *Estimator) EstimatePowerConsumption(ctx context.Context, cpuMilli, numW
 	}
 
 	// search
-	// TODO: exhaustive search wattMatrix[][] -> wattIncrease[]
-	wattIncrease := make([]float64, numWorkloads)
-	return wattIncrease, nil
+	minCosts, err := ComputeLeastCostsFn(e.Nodes.Len(), numWorkloads, wattMatrix)
+	if err != nil {
+		return nil, err
+	}
+
+	lg.Debug().Msgf("minCosts=%v", minCosts)
+
+	return minCosts, nil
 }
 
 func (e *Estimator) stop() {
