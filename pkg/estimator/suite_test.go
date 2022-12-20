@@ -14,8 +14,6 @@ import (
 	. "github.com/onsi/ginkgo/v2"
 	. "github.com/onsi/gomega"
 
-	"sigs.k8s.io/controller-runtime/pkg/client"
-
 	"github.com/Nedopro2022/wao-estimator/pkg/estimator"
 )
 
@@ -88,29 +86,29 @@ var _ = Describe("Server/Client", func() {
 		testAccess(httpAddr, "", "hoge", "fuga", estimator.ErrServerEstimatorNotFound, false)
 
 		// default/default
-		ok := es.Add(client.ObjectKey{Namespace: "default", Name: "default"}.String(), &estimator.Estimator{Nodes: nil})
+		ok := es.Add(estimator.RequestToEstimatorName("default", "default"), &estimator.Estimator{Nodes: nil})
 		Expect(ok).To(BeTrue())
 		testAccess(httpAddr, "", "default", "default", estimator.ErrEstimatorNoNodesAvailable, false)
 		testAccess(httpAddr, "", "hoge", "fuga", estimator.ErrServerEstimatorNotFound, false)
 
 		// default/default, hoge/fuga
-		ok = es.Add(client.ObjectKey{Namespace: "hoge", Name: "fuga"}.String(), &estimator.Estimator{Nodes: nil})
+		ok = es.Add(estimator.RequestToEstimatorName("hoge", "fuga"), &estimator.Estimator{Nodes: nil})
 		Expect(ok).To(BeTrue())
 		testAccess(httpAddr, "", "default", "default", estimator.ErrEstimatorNoNodesAvailable, false)
 		testAccess(httpAddr, "", "hoge", "fuga", estimator.ErrEstimatorNoNodesAvailable, false)
 
 		// default/default, hoge/fuga
-		es.Delete(client.ObjectKey{Namespace: "foo", Name: "bar"}.String())
+		es.Delete(estimator.RequestToEstimatorName("foo", "bar"))
 		testAccess(httpAddr, "", "default", "default", estimator.ErrEstimatorNoNodesAvailable, false)
 		testAccess(httpAddr, "", "hoge", "fuga", estimator.ErrEstimatorNoNodesAvailable, false)
 
 		// default/default
-		es.Delete(client.ObjectKey{Namespace: "hoge", Name: "fuga"}.String())
+		es.Delete(estimator.RequestToEstimatorName("hoge", "fuga"))
 		testAccess(httpAddr, "", "default", "default", estimator.ErrEstimatorNoNodesAvailable, false)
 		testAccess(httpAddr, "", "hoge", "fuga", estimator.ErrServerEstimatorNotFound, false)
 
 		// empty
-		es.Delete(client.ObjectKey{Namespace: "default", Name: "default"}.String())
+		es.Delete(estimator.RequestToEstimatorName("default", "default"))
 		testAccess(httpAddr, "", "default", "default", estimator.ErrServerEstimatorNotFound, false)
 		testAccess(httpAddr, "", "hoge", "fuga", estimator.ErrServerEstimatorNotFound, false)
 	})
@@ -137,7 +135,7 @@ var _ = Describe("Server/Client", func() {
 		testAccess(httpAddr, key2, "default", "default", estimator.ErrServerEstimatorNotFound, false)
 
 		// Estimators: default/default
-		ok := es.Add(client.ObjectKey{Namespace: "default", Name: "default"}.String(), &estimator.Estimator{Nodes: nil})
+		ok := es.Add(estimator.RequestToEstimatorName("default", "default"), &estimator.Estimator{Nodes: nil})
 		Expect(ok).To(BeTrue())
 		testAccess(httpAddr, "", "default", "default", estimator.ErrClientUnauthorized, false)
 		testAccess(httpAddr, "xxx", "default", "default", estimator.ErrClientUnauthorized, false)
@@ -145,7 +143,7 @@ var _ = Describe("Server/Client", func() {
 		testAccess(httpAddr, key2, "default", "default", estimator.ErrEstimatorNoNodesAvailable, false)
 
 		// Estimators: empty
-		es.Delete(client.ObjectKey{Namespace: "default", Name: "default"}.String())
+		es.Delete(estimator.RequestToEstimatorName("default", "default"))
 		testAccess(httpAddr, "", "default", "default", estimator.ErrClientUnauthorized, false)
 		testAccess(httpAddr, "xxx", "default", "default", estimator.ErrClientUnauthorized, false)
 		testAccess(httpAddr, key1, "default", "default", estimator.ErrServerEstimatorNotFound, false)
@@ -173,7 +171,7 @@ var _ = Describe("Server/Client", func() {
 		wait()
 		// estimator
 		est := &estimator.Estimator{}
-		sv.Estimators.Add(client.ObjectKey{Namespace: ns, Name: name}.String(), est)
+		sv.Estimators.Add(estimator.RequestToEstimatorName(ns, name), est)
 
 		// test: no nodes
 		testRequest(cl, &estimator.PowerConsumption{CpuMilli: 500, NumWorkloads: 5}, nil, estimator.ErrEstimatorNoNodesAvailable)

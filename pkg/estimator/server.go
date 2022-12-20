@@ -74,6 +74,10 @@ func (s *Server) PostNamespacesNsEstimatorsNameValuesPowerconsumption(ctx contex
 	}, nil
 }
 
+func RequestToEstimatorName(ns, name string) string {
+	return client.ObjectKey{Namespace: ns, Name: name}.String()
+}
+
 type AuthenticationFunc = openapi3filter.AuthenticationFunc
 
 const AuthFnAPIKeyRequestHeader = "X-API-KEY"

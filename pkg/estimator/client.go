@@ -7,7 +7,6 @@ import (
 	"net/http"
 
 	http2curl "moul.io/http2curl/v2"
-	"sigs.k8s.io/controller-runtime/pkg/client"
 
 	"github.com/Nedopro2022/wao-estimator/pkg/estimator/api"
 )
@@ -38,8 +37,9 @@ func ClientOptionGetRequestAsCurl(w io.Writer) ClientOption {
 }
 
 type Client struct {
-	c api.ClientWithResponsesInterface
-	e client.ObjectKey
+	c       api.ClientWithResponsesInterface
+	reqNS   string
+	reqName string
 }
 
 func NewClient(server string, estimatorNamespace, estimatorName string, opts ...ClientOption) (*Client, error) {
@@ -47,7 +47,7 @@ func NewClient(server string, estimatorNamespace, estimatorName string, opts ...
 	if err != nil {
 		return nil, err
 	}
-	ec := Client{c: c, e: client.ObjectKey{Namespace: estimatorNamespace, Name: estimatorName}}
+	ec := Client{c: c, reqNS: estimatorNamespace, reqName: estimatorName}
 	return &ec, nil
 }
 
@@ -57,7 +57,7 @@ func (c *Client) EstimatePowerConsumption(ctx context.Context, cpuMilli, numWork
 		NumWorkloads:  numWorkloads,
 		WattIncreases: nil,
 	}
-	resp, err := c.c.PostNamespacesNsEstimatorsNameValuesPowerconsumptionWithResponse(ctx, c.e.Namespace, c.e.Name, body)
+	resp, err := c.c.PostNamespacesNsEstimatorsNameValuesPowerconsumptionWithResponse(ctx, c.reqNS, c.reqName, body)
 	if err != nil {
 		return nil, nil, err
 	}
