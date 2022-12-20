@@ -4,8 +4,10 @@ import (
 	"context"
 	"errors"
 	"fmt"
+	"math"
 	"net"
 	"net/http"
+	"reflect"
 	"testing"
 	"time"
 
@@ -150,6 +152,93 @@ var _ = Describe("Server/Client", func() {
 		testAccess(httpAddr, key2, "default", "default", estimator.ErrServerEstimatorNotFound, false)
 	})
 
+	It("should request", func() {
+
+		ns := "default"
+		name := "default"
+
+		// client
+		opts := []estimator.ClientOption{estimator.ClientOptionGetRequestAsCurl(GinkgoWriter)}
+		cl, err := estimator.NewClient(httpAddr, ns, name, opts...)
+		Expect(err).NotTo(HaveOccurred())
+		// server
+		es = &estimator.Estimators{}
+		sv = &estimator.Server{Estimators: es}
+		h, err := sv.Handler()
+		Expect(err).NotTo(HaveOccurred())
+		hsv = &http.Server{Addr: addr, Handler: h}
+		go func() {
+			hsv.ListenAndServe()
+		}()
+		wait()
+		// estimator
+		est := &estimator.Estimator{}
+		sv.Estimators.Add(client.ObjectKey{Namespace: ns, Name: name}.String(), est)
+
+		// test: no nodes
+		testRequest(cl, &estimator.PowerConsumption{CpuMilli: 500, NumWorkloads: 5}, nil, estimator.ErrEstimatorNoNodesAvailable)
+
+		// test: n0 (no StatusMonitor, no PCPredictor)
+		intv := 300 * time.Millisecond
+		n0 := estimator.NewNode("n0", nil, intv, nil)
+		est.Nodes.Add(n0.Name, n0)
+		testRequest(cl, &estimator.PowerConsumption{
+			CpuMilli: 500, NumWorkloads: 5,
+		}, &estimator.PowerConsumption{
+			CpuMilli: 500, NumWorkloads: 5, WattIncreases: &[]float64{math.MaxFloat64, math.MaxFloat64, math.MaxFloat64, math.MaxFloat64, math.MaxFloat64},
+		}, nil)
+		testRequest(cl, &estimator.PowerConsumption{
+			CpuMilli: 1000, NumWorkloads: 1,
+		}, &estimator.PowerConsumption{
+			CpuMilli: 1000, NumWorkloads: 1, WattIncreases: &[]float64{math.MaxFloat64},
+		}, nil)
+		testRequest(cl, &estimator.PowerConsumption{
+			CpuMilli: 1000, NumWorkloads: 0,
+		}, &estimator.PowerConsumption{
+			CpuMilli: 1000, NumWorkloads: 0, WattIncreases: &[]float64{},
+		}, nil)
+
+		// test: n0, n1 (fake)
+		nm1 := &estimator.FakeNodeMonitor{FetchFunc: func(context.Context) (estimator.NodeStatus, error) {
+			t := func() time.Time { return time.Now() }
+			return estimator.NodeStatus{Timestamp: t()}, nil
+		}}
+		pcp1 := &estimator.FakePCPredictor{PredictFunc: func(_ context.Context, requestCPUMilli int, _ estimator.NodeStatus) (watt float64, err error) {
+			// 100mCPU/W
+			return float64(requestCPUMilli) / 100, nil
+		}}
+		n1 := estimator.NewNode("n1", nm1, intv, pcp1)
+		est.Nodes.Add(n1.Name, n1)
+		// n0: [inf inf inf inf]
+		// n1: [  5  10  15  20]
+		testRequest(cl, &estimator.PowerConsumption{
+			CpuMilli: 500, NumWorkloads: 4,
+		}, &estimator.PowerConsumption{
+			CpuMilli: 500, NumWorkloads: 4, WattIncreases: &[]float64{5, 10, 15, 20},
+		}, nil)
+
+		// test: n0, n1, n2 (fake)
+		nm2 := &estimator.FakeNodeMonitor{FetchFunc: func(context.Context) (estimator.NodeStatus, error) {
+			t := func() time.Time { return time.Now() }
+			return estimator.NodeStatus{Timestamp: t()}, nil
+		}}
+		pcp2 := &estimator.FakePCPredictor{PredictFunc: func(_ context.Context, requestCPUMilli int, _ estimator.NodeStatus) (watt float64, err error) {
+			// 200mCPU/W
+			return float64(requestCPUMilli) / 200, nil
+		}}
+		n2 := estimator.NewNode("n2", nm2, intv, pcp2)
+		est.Nodes.Add(n2.Name, n2)
+		// n0: [inf inf inf inf]
+		// n1: [  5  10  15  20]
+		// n2: [2.5   5 7.5  10]
+		testRequest(cl, &estimator.PowerConsumption{
+			CpuMilli: 500, NumWorkloads: 4,
+		}, &estimator.PowerConsumption{
+			CpuMilli: 500, NumWorkloads: 4, WattIncreases: &[]float64{2.5, 5, 7.5, 10},
+		}, nil)
+
+	})
+
 })
 
 func testAccess(httpAddr, apiKey, ns, name string, wantAPIErr error, wantErr bool) {
@@ -188,6 +277,38 @@ func testAccess(httpAddr, apiKey, ns, name string, wantAPIErr error, wantErr boo
 		}
 
 		return fmt.Errorf("unexpected wantAPIErr=%v wantErr=%v pc=%v, apiErr=%v, err=%v", wantAPIErr, wantErr, pc, apiErr, err)
+	}
+
+	Eventually(testFn).Should(Succeed())
+}
+
+func testRequest(cl *estimator.Client, req, want *estimator.PowerConsumption, wantAPIErr error) {
+	testFn := func() error {
+		if req == nil {
+			return fmt.Errorf("req must not be nil")
+		}
+
+		pc, apiErr, err := cl.EstimatePowerConsumption(context.Background(), req.CpuMilli, req.NumWorkloads)
+
+		if err != nil {
+			return fmt.Errorf("err=%v", err)
+		}
+
+		if wantAPIErr != nil {
+			if apiErr == nil || pc != nil || err != nil {
+				return fmt.Errorf("wantAPIErr=%v but got %v, pc=%v err=%v", wantAPIErr, apiErr, pc, err)
+			}
+			if !errors.Is(estimator.GetErrorFromCode(*apiErr), wantAPIErr) {
+				return fmt.Errorf("wantAPIErr=%v but got %v, pc=%v err=%v", wantAPIErr, apiErr, pc, err)
+			}
+			return nil
+		}
+
+		if !reflect.DeepEqual(pc, want) {
+			return fmt.Errorf("want=%v (WattIncreases=%v) but got %v (WattIncreases=%v)", want, want.WattIncreases, pc, pc.WattIncreases)
+		}
+
+		return nil
 	}
 
 	Eventually(testFn).Should(Succeed())
