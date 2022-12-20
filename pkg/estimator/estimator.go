@@ -49,10 +49,10 @@ func (e *Estimator) EstimatePowerConsumption(ctx context.Context, cpuMilli, numW
 			for j := 0; j < numWorkloads+1; j++ {
 				watt, err := node.Predict(ctx, cpuMilli*(j), node.GetStatus())
 				if err != nil {
-					lg.Warn().Msgf("node.Predict() got error at wattMatrix[%d][%d] err=%v", nodeIdx, j, err)
+					lg.Warn().Msgf("node.Predict() for name=%s got error at wattMatrix[%d][%d] err=%v", node.Name, nodeIdx, j, err)
 					watt = math.MaxFloat64
 				}
-				lg.Debug().Msgf("call node.Predict() for wattMatrix[%d][%d] watt=%f", nodeIdx, j, watt)
+				lg.Debug().Msgf("call node.Predict() for name=%s wattMatrix[%d][%d] watt=%f", node.Name, nodeIdx, j, watt)
 				wattMatrix[nodeIdx][j] = watt
 			}
 		}()

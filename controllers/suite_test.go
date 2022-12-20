@@ -1,3 +1,5 @@
+//go:build testOnExistingCluster
+
 package controllers_test
 
 import (
@@ -12,6 +14,7 @@ import (
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/client-go/kubernetes/scheme"
 	"k8s.io/client-go/rest"
+	"k8s.io/utils/pointer"
 	ctrl "sigs.k8s.io/controller-runtime"
 	"sigs.k8s.io/controller-runtime/pkg/client"
 	"sigs.k8s.io/controller-runtime/pkg/controller/controllerutil"
@@ -44,6 +47,7 @@ var _ = BeforeSuite(func() {
 	testEnv = &envtest.Environment{
 		CRDDirectoryPaths:     []string{filepath.Join("..", "config", "crd", "bases")},
 		ErrorIfCRDPathMissing: true,
+		UseExistingCluster:    pointer.Bool(true),
 	}
 
 	var err error
@@ -77,11 +81,58 @@ var (
 			Namespace: testNS,
 			Name:      "hoge",
 		},
+		Spec: v1beta1.EstimatorSpec{
+			NodeMonitor: &v1beta1.NodeMonitor{
+				Type: v1beta1.Field{
+					Default: v1beta1.NodeMonitorTypeNone,
+				},
+				RefreshInterval: &metav1.Duration{
+					Duration: v1beta1.DefaultNodeMonitorRefreshInterval,
+				},
+			},
+			PowerConsumptionPredictor: &v1beta1.PowerConsumptionPredictor{
+				Type: v1beta1.Field{
+					Default: v1beta1.PowerConsumptionPredictorTypeNone,
+				},
+			},
+		},
 	}
 	testEC2 = v1beta1.Estimator{
 		ObjectMeta: metav1.ObjectMeta{
 			Namespace: testNS,
 			Name:      "fuga",
+		},
+		Spec: testEC1.Spec,
+	}
+
+	testLabelNodeMonitor = "waofed.bitmedia.co.jp/node-monitor"
+	testLabelPCPredictor = "waofed.bitmedia.co.jp/power-consumption-predictor"
+
+	testEC3 = v1beta1.Estimator{
+		ObjectMeta: metav1.ObjectMeta{
+			Namespace: testNS,
+			Name:      "default",
+		},
+		Spec: v1beta1.EstimatorSpec{
+			NodeMonitor: &v1beta1.NodeMonitor{
+				Type: v1beta1.Field{
+					Default: v1beta1.NodeMonitorTypeNone,
+					Override: &v1beta1.FieldRef{
+						Label: &testLabelNodeMonitor,
+					},
+				},
+				RefreshInterval: &metav1.Duration{
+					Duration: v1beta1.DefaultNodeMonitorRefreshInterval,
+				},
+			},
+			PowerConsumptionPredictor: &v1beta1.PowerConsumptionPredictor{
+				Type: v1beta1.Field{
+					Default: v1beta1.PowerConsumptionPredictorTypeNone,
+					Override: &v1beta1.FieldRef{
+						Label: &testLabelPCPredictor,
+					},
+				},
+			},
 		},
 	}
 )
@@ -185,9 +236,9 @@ var _ = Describe("Estimator controller", func() {
 		Eventually(func() error {
 			return k8sClient.Get(ctx, client.ObjectKeyFromObject(&ec1), &ec1)
 		}).Should(Succeed())
-		Expect(ec1.Spec.NodeMonitor).To(BeNil())
+		Expect(ec1.Spec.NodeMonitor.RefreshInterval.Duration).To(Equal(v1beta1.DefaultNodeMonitorRefreshInterval))
 		op, err := ctrl.CreateOrUpdate(ctx, k8sClient, &ec1, func() error {
-			ec1.Spec.NodeMonitor = &v1beta1.NodeMonitor{}
+			ec1.Spec.NodeMonitor.RefreshInterval = &metav1.Duration{Duration: time.Second}
 			return nil
 		})
 		Expect(op).To(Equal(controllerutil.OperationResultUpdated))
@@ -197,7 +248,7 @@ var _ = Describe("Estimator controller", func() {
 		Eventually(func() error {
 			return k8sClient.Get(ctx, client.ObjectKeyFromObject(&ec1), &ec1)
 		}).Should(Succeed())
-		Expect(ec1.Spec.NodeMonitor).NotTo(BeNil())
+		Expect(ec1.Spec.NodeMonitor.RefreshInterval.Duration).To(Equal(time.Second))
 		op, err = ctrl.CreateOrUpdate(ctx, k8sClient, &ec1, func() error {
 			ec1.Spec.NodeMonitor.RefreshInterval = &metav1.Duration{Duration: v1beta1.DefaultNodeMonitorRefreshInterval}
 			return nil
@@ -212,4 +263,38 @@ var _ = Describe("Estimator controller", func() {
 			return estimatorReconciler.GetEstimators().Len()
 		}).Should(Equal(1))
 	})
+
+	It("should estimate", func() {
+		ctx := context.Background()
+
+		// Estimators: empty
+		Expect(estimatorReconciler.GetEstimators().Len()).To(Equal(0))
+
+		// Estimators: default/default
+		ec := testEC3
+		err := k8sClient.Create(ctx, &ec)
+		Expect(err).NotTo(HaveOccurred())
+		Eventually(func() int {
+			return estimatorReconciler.GetEstimators().Len()
+		}).Should(Equal(1))
+
+		estm, ok := estimatorReconciler.GetEstimators().Get(client.ObjectKeyFromObject(&ec).String())
+		Expect(ok).To(BeTrue())
+
+		watts, err := estm.EstimatePowerConsumption(ctx, 500, 5)
+		Expect(err).To(BeNil())
+		// wattMatrix=[
+		//	            [inf inf inf inf inf inf]  (control-plane)
+		//              [100 105 110 115 120 125]  (worker,  base=100, 10W/Core)
+		//              [ 50  60  70  80  90 100]  (worker2, base=50,  20W/Core)
+		//            ]
+		// wattDiffs= [
+		//              [inf inf inf inf inf]
+		//              [  5  10  15  20  25]
+		//              [ 10  20  30  40  50]
+		//            ]
+		// watts=       [  5  10  15  20  25]
+		Expect(watts).To(Equal([]float64{5, 10, 15, 20, 25}))
+	})
+
 })
