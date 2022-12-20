@@ -13,7 +13,8 @@ jobs:
       - uses: actions/setup-go@v3
         with:
           go-version-file: go.mod
-      - run: make test
+      - name: "test: run test scripts"
+        run: ./test/controllers-reset-cluster.sh && ./test/controllers-run-tests.sh
       - name: "coverage: remove generated files from cover.out"
         run: sed -i -e '/.*_generated.*\.go/d'  cover.out
       - uses: codecov/codecov-action@v3
