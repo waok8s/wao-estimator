@@ -2,6 +2,7 @@ package estimator_test
 
 import (
 	"context"
+	"errors"
 	"fmt"
 	"net"
 	"net/http"
@@ -171,6 +172,9 @@ func testAccess(httpAddr, apiKey, ns, name string, wantAPIErr error, wantErr boo
 
 		if wantAPIErr != nil {
 			if apiErr == nil || pc != nil || err != nil {
+				return fmt.Errorf("wantAPIErr=%v but got %v, pc=%v err=%v", wantAPIErr, apiErr, pc, err)
+			}
+			if !errors.Is(estimator.GetErrorFromCode(*apiErr), wantAPIErr) {
 				return fmt.Errorf("wantAPIErr=%v but got %v, pc=%v err=%v", wantAPIErr, apiErr, pc, err)
 			}
 			return nil
