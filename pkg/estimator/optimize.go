@@ -7,6 +7,58 @@ import (
 	"time"
 )
 
+// is2DArray checkes if the given [][]float64 is a 2D array (i.e. vv[*] has same length).
+func is2DArray(vv [][]float64) (row int, col int, err error) {
+	if len(vv) == 0 {
+		return 0, 0, nil
+	}
+	row = len(vv)
+	col = len(vv[0])
+	for i, v := range vv {
+		if len(v) != col {
+			return 0, 0, fmt.Errorf("wrong 2D array idx=%d", i)
+		}
+	}
+	return
+}
+
+// toDiff returns a new matrix, make each row element
+// the difference from the first element in that row.
+// i.e. [[a0 a0+a1 a0+a2] [b0 b0+b1 b0+b2]] -> [[a1 a2] [b1 b2]]
+//
+// input:
+//
+//	[100 120 140]
+//	[200 300 400]
+//	[500 500 500]
+//
+// output:
+//
+//	[  20  40]
+//	[ 100 200]
+//	[   0   0]
+func toDiff(vv [][]float64) ([][]float64, error) {
+	row, col, err := is2DArray(vv)
+	if err != nil {
+		return nil, err
+	}
+	if row == 0 {
+		return [][]float64{}, nil
+	}
+	if col == 0 {
+		return nil, errors.New("col must be >0")
+	}
+	xx := make([][]float64, row)
+	for i := range xx {
+		xx[i] = make([]float64, col-1)
+		v0 := vv[i][0]
+		for j := 0; j < col-1; j++ {
+			xx[i][j] = vv[i][j+1] - v0
+		}
+	}
+	return xx, nil
+}
+
 type ComputeLeastCostPatternsFunc func(clusterNum, podNum int, wattMatrix [][]float64) (minWatt float64, minWattPatterns [][]int, err error)
 
 var ComputeLeastCostPatternsFn = findLeastCostPatternsExhaustive
@@ -15,6 +67,19 @@ type ComputeLeastCostsFunc func(clusterNum, podNum int, wattMatrix [][]float64) 
 
 var ComputeLeastCostsFn = findLeastCosts
 
+const (
+	maxPowMN = 10_000_000
+)
+
+// enumerateNdigitMbaseNumbers enumerates all N-digit M-base numbers that passed the given filter.
+// It uses a []int to hold a M-base number (e.g. decimal=17,N=5,M=5 -> [0 0 0 3 2]).
+//
+// The result may be large. expectedReturnLength allows you to specify the capacity of
+// the return slice to improve efficiency by reducing memory reallocation.
+//
+// Computational complexity: M^N
+//
+// Constraints: M^N < maxPowMN (default: 10^7)
 func enumerateNdigitMbaseNumbers(n, m int, filter func([]int) bool, expectedReturnLength int) ([][]int, error) {
 	t := time.Now()
 	defer func() {
@@ -25,7 +90,6 @@ func enumerateNdigitMbaseNumbers(n, m int, filter func([]int) bool, expectedRetu
 	// 10^6: 50ms
 	// 10^7: 500ms
 	// 10^8: 5000ms
-	maxPowMN := 10_000_000
 	total := int(math.Pow(float64(m), float64(n)))
 	if total > maxPowMN {
 		return nil, fmt.Errorf("combinatorial explosion m=%d n=%d m^n=%d max=%d", m, n, total, maxPowMN)
@@ -42,6 +106,10 @@ func enumerateNdigitMbaseNumbers(n, m int, filter func([]int) bool, expectedRetu
 			v[j] = tmp % m
 			tmp /= m
 		}
+		// reverse
+		for i, j := 0, len(v)-1; i < j; i, j = i+1, j-1 {
+			v[i], v[j] = v[j], v[i]
+		}
 		if filter(v) {
 			pp = append(pp, v)
 		}
@@ -49,20 +117,6 @@ func enumerateNdigitMbaseNumbers(n, m int, filter func([]int) bool, expectedRetu
 
 	lg.Debug().Msgf("n=%d m=%v total=%d filtered=%d", n, m, total, len(pp))
 	return pp, nil
-}
-
-func is2DArray(vv [][]float64) (row int, col int, err error) {
-	if len(vv) == 0 {
-		return 0, 0, nil
-	}
-	row = len(vv)
-	col = len(vv[0])
-	for i, v := range vv {
-		if len(v) != col {
-			return 0, 0, fmt.Errorf("wrong 2D array idx=%d", i)
-		}
-	}
-	return
 }
 
 func findLeastCostPatternsExhaustive(box, itemsPerBox int, costs [][]float64) (minCost float64, minCostPatterns [][]int, err error) {
@@ -150,41 +204,4 @@ func findLeastCosts(box, itemsPerBox int, costs [][]float64) (minCosts []float64
 		minCosts = append(minCosts, minCost)
 	}
 	return minCosts, nil
-}
-
-// toDiff returns a new matrix, make each row element
-// the difference from the first element in that row.
-// i.e. [[a0 a0+a1 a0+a2] [b0 b0+b1 b0+b2]] -> [[a1 a2] [b1 b2]]
-//
-// input:
-//
-//	[100 120 140]
-//	[200 300 400]
-//	[500 500 500]
-//
-// output:
-//
-//	[  20  40]
-//	[ 100 200]
-//	[   0   0]
-func toDiff(vv [][]float64) ([][]float64, error) {
-	row, col, err := is2DArray(vv)
-	if err != nil {
-		return nil, err
-	}
-	if row == 0 {
-		return [][]float64{}, nil
-	}
-	if col == 0 {
-		return nil, errors.New("col must be >0")
-	}
-	xx := make([][]float64, row)
-	for i := range xx {
-		xx[i] = make([]float64, col-1)
-		v0 := vv[i][0]
-		for j := 0; j < col-1; j++ {
-			xx[i][j] = vv[i][j+1] - v0
-		}
-	}
-	return xx, nil
 }
