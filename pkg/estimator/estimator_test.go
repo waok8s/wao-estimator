@@ -1,6 +1,7 @@
 package estimator
 
 import (
+	"math"
 	"testing"
 )
 
@@ -58,6 +59,49 @@ func TestEstimators_Len(t *testing.T) {
 			}
 			if got := tt.ests.Len(); got != tt.want {
 				t.Errorf("Estimators.Len() = %v, want %v", got, tt.want)
+			}
+		})
+	}
+}
+
+func Test_patchWattMatrix(t *testing.T) {
+	type args struct {
+		wattMatrix [][]float64
+	}
+	tests := []struct {
+		name           string
+		args           args
+		wantWattMatrix [][]float64
+	}{
+		{"no error", args{wattMatrix: testCostsReq1}, testCostsReq1},
+		{"an error", args{wattMatrix: [][]float64{
+			{1, 2, 3},
+			{1, 2, math.MaxFloat64},
+			{1, 2, 3},
+		}}, [][]float64{
+			{1, 2, 3},
+			{0, math.MaxFloat64, math.MaxFloat64},
+			{1, 2, 3},
+		}},
+		{"all error", args{wattMatrix: [][]float64{
+			{math.MaxFloat64, 2, 3},
+			{1, math.MaxFloat64, 3},
+			{1, 2, math.MaxFloat64},
+		}}, [][]float64{
+			{0, math.MaxFloat64, math.MaxFloat64},
+			{0, math.MaxFloat64, math.MaxFloat64},
+			{0, math.MaxFloat64, math.MaxFloat64},
+		}},
+	}
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			patchWattMatrix(tt.args.wattMatrix)
+			for i := range tt.args.wattMatrix {
+				for j := range tt.args.wattMatrix[i] {
+					if tt.args.wattMatrix[i][j] != tt.wantWattMatrix[i][j] {
+						t.Errorf("want=%v but got=%v", tt.wantWattMatrix, tt.args.wattMatrix)
+					}
+				}
 			}
 		})
 	}

@@ -62,8 +62,26 @@ func (e *Estimator) EstimatePowerConsumption(ctx context.Context, cpuMilli, numW
 	wg.Wait()
 	lg.Debug().Msgf("wattMatrix=%v", wattMatrix)
 
+	patchWattMatrix(wattMatrix)
+
+	// search
+	wattDiffs, err := toDiff(wattMatrix)
+	if err != nil {
+		return nil, err
+	}
+	lg.Debug().Msgf("wattDiffs=%v", wattDiffs)
+	minCosts, err := ComputeLeastCostsFn(e.Nodes.Len(), numWorkloads, wattDiffs)
+	if err != nil {
+		return nil, err
+	}
+	lg.Debug().Msgf("minCosts=%v", minCosts)
+
+	return minCosts, nil
+}
+
+func patchWattMatrix(wattMatrix [][]float64) {
 	////////////////
-	// Do some replace to ensure toDiff() returns [math.MaxFloat64 ...] for error rows.
+	// Do some replacements to ensure toDiff() returns [math.MaxFloat64 ...] for error rows.
 	////////////////
 	// 1. detect errors: any row includes math.MaxFloat64
 	// e.g. wattMatrix=[[1 2 3] [1 math.MaxFloat64 3]] then errs={1: struct{}}
@@ -87,20 +105,6 @@ func (e *Estimator) EstimatePowerConsumption(ctx context.Context, cpuMilli, numW
 			}
 		}
 	}
-
-	// search
-	wattDiffs, err := toDiff(wattMatrix)
-	if err != nil {
-		return nil, err
-	}
-	lg.Debug().Msgf("wattDiffs=%v", wattDiffs)
-	minCosts, err := ComputeLeastCostsFn(e.Nodes.Len(), numWorkloads, wattDiffs)
-	if err != nil {
-		return nil, err
-	}
-	lg.Debug().Msgf("minCosts=%v", minCosts)
-
-	return minCosts, nil
 }
 
 func (e *Estimator) stop() {
