@@ -13,6 +13,10 @@ jobs:
       - uses: actions/setup-go@v3
         with:
           go-version-file: go.mod
+      - name: "build: go generate"
+        run: go generate ./...
+      - name: "test: race condition"
+        run: go test ./pkg/... -race
       - name: "test: run test scripts"
         run: ./test/controllers-reset-cluster.sh && ./test/controllers-run-tests.sh
       - name: "coverage: remove generated files from cover.out"
