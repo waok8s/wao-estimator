@@ -103,6 +103,8 @@ func setupFakePCPredictor(k8sClient client.Client, nodeObjKey client.ObjectKey) 
 			return 0.0, err
 		}
 
+		time.Sleep(10 * time.Millisecond) // emulate response time
+
 		return float64(bw) + ((float64(requestCPUMilli) / 1000) * float64(wpc)), nil
 	}
 
