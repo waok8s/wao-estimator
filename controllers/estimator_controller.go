@@ -3,6 +3,7 @@ package controllers
 import (
 	"context"
 	"fmt"
+	"math"
 	"net"
 	"net/http"
 
@@ -126,6 +127,12 @@ func (r *EstimatorReconciler) reconcileEstimatorNodes(ctx context.Context, estCo
 		nmType := v1beta1.NodeMonitorType(getFieldValue(estConf.Spec.NodeMonitor.Type, &node))
 		switch nmType {
 		case v1beta1.NodeMonitorTypeNone:
+			// return an empty NodeStatus to suppress warnings
+			// NOTE: A Node has an empty NodeStatus by default so this does not change anything.
+			//       i.e. Predictors should validate the given NodeStatus anyway.
+			nm = &estimator.FakeNodeMonitor{FetchFunc: func(context.Context) (estimator.NodeStatus, error) {
+				return estimator.NodeStatus{}, nil
+			}}
 		case v1beta1.NodeMonitorTypeFake:
 			nm = setupFakeNodeMonitor(r.Client, client.ObjectKeyFromObject(&node))
 		case v1beta1.NodeMonitorTypeIPMIExporter:
@@ -142,6 +149,11 @@ func (r *EstimatorReconciler) reconcileEstimatorNodes(ctx context.Context, estCo
 		pcpType := v1beta1.PowerConsumptionPredictorType(getFieldValue(estConf.Spec.PowerConsumptionPredictor.Type, &node))
 		switch pcpType {
 		case v1beta1.PowerConsumptionPredictorTypeNone:
+			// return +Inf to suppress warnings
+			// NOTE: Estimator fills failed predictions with +Inf so this only suppresses warnings.
+			pcp = &estimator.FakePCPredictor{PredictFunc: func(context.Context, int, estimator.NodeStatus) (float64, error) {
+				return math.Inf(1), nil
+			}}
 		case v1beta1.PowerConsumptionPredictorTypeFake:
 			pcp = setupFakePCPredictor(r.Client, client.ObjectKeyFromObject(&node))
 		case v1beta1.PowerConsumptionPredictorTypeMLServer:
