@@ -4,6 +4,7 @@ import (
 	"errors"
 	"fmt"
 	"math"
+	"sync"
 	"time"
 )
 
@@ -256,17 +257,31 @@ func findLeastCosts(box, itemsPerBox int, costs [][]float64) (minCosts []float64
 		return nil, errors.New("len(costs)!=box || len(costs[*])!=itemsPerBox")
 	}
 
+	wg := sync.WaitGroup{}
+	errs := make([]error, itemsPerBox)
 	minCosts = make([]float64, itemsPerBox)
-	for m := itemsPerBox; m >= 1; m-- { // let it "fail-fast" by starting with a large number
-		var curCosts [][]float64
-		for i := 0; i < box; i++ {
-			curCosts = append(curCosts, costs[i][:m])
-		}
-		minCost, _, err := ComputeLeastCostPatternsFn(box, m, curCosts)
-		if err != nil {
-			return nil, err
-		}
-		minCosts[m-1] = minCost
+	for m := itemsPerBox; m >= 1; m-- { // let it be fast by starting with large arrays
+		m := m
+		wg.Add(1)
+		// NOTE: no need to sync, the goroutines below only write different slice elements
+		go func() {
+			defer wg.Done()
+			var curCosts [][]float64
+			for i := 0; i < box; i++ {
+				curCosts = append(curCosts, costs[i][:m])
+			}
+			minCost, _, err := ComputeLeastCostPatternsFn(box, m, curCosts)
+			minCosts[m-1] = minCost
+			errs[m-1] = err
+		}()
 	}
+	wg.Wait()
+
+	for _, err := range errs {
+		if err != nil {
+			return minCosts, fmt.Errorf("one or more errors found err=%v (%w)", err, ErrEstimator)
+		}
+	}
+
 	return minCosts, nil
 }
