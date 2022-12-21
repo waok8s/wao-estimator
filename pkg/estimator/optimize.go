@@ -61,7 +61,7 @@ func toDiff(vv [][]float64) ([][]float64, error) {
 
 type ComputeLeastCostPatternsFunc func(clusterNum, podNum int, wattMatrix [][]float64) (minWatt float64, minWattPatterns [][]int, err error)
 
-var ComputeLeastCostPatternsFn = findLeastCostPatternsExhaustive
+var ComputeLeastCostPatternsFn = findLeastCostPatternsExhaustiveWithSampling
 
 type ComputeLeastCostsFunc func(clusterNum, podNum int, wattMatrix [][]float64) (minWatts []float64, err error)
 
@@ -117,6 +117,71 @@ func enumerateNdigitMbaseNumbers(n, m int, filter func([]int) bool, expectedRetu
 
 	lg.Debug().Msgf("n=%d m=%v total=%d filtered=%d", n, m, total, len(pp))
 	return pp, nil
+}
+
+const (
+	minM = 6
+	minN = 6
+)
+
+func findLeastCostPatternsExhaustiveWithSampling(box, itemsPerBox int, costs [][]float64) (minCost float64, minCostPatterns [][]int, err error) {
+	t := time.Now()
+	defer func() {
+		lg.Debug().Msgf("findLeastCostPatternsExhaustiveWithSampling total elapsed=%dms", time.Since(t).Milliseconds())
+	}()
+
+	row, col, err := is2DArray(costs)
+	if err != nil {
+		return 0.0, nil, nil
+	}
+	if row != box || col != itemsPerBox {
+		return 0.0, nil, errors.New("len(costs)!=box || len(costs[*])!=itemsPerBox")
+	}
+
+	itemsPerBox++
+	total := int(math.Pow(float64(itemsPerBox), float64(box)))
+	for total > maxPowMN {
+		tmp1 := int(math.Pow(float64(itemsPerBox-1), float64(box)))
+		tmp2 := int(math.Pow(float64(itemsPerBox), float64(box-1)))
+		if tmp1 > tmp2 {
+			if box <= minN {
+				itemsPerBox--
+			} else {
+				box--
+			}
+		} else {
+			if itemsPerBox <= minM {
+				box--
+			} else {
+				itemsPerBox--
+			}
+		}
+		total = int(math.Pow(float64(itemsPerBox), float64(box)))
+		lg.Debug().Msgf("sampling (%d,%d) -> (%d,%d) total=%d", row, col, box, itemsPerBox, total)
+	}
+	itemsPerBox--
+
+	if row == box && col == itemsPerBox {
+		return findLeastCostPatternsExhaustive(box, itemsPerBox, costs)
+	}
+
+	lg.Error().Msgf("large requests need sampling but not yet implemented")
+	return 0.0, nil, fmt.Errorf("large requests need sampling but not yet implemented")
+
+	// TODO: sampling
+	// var dropCols []int
+	// var dropRows []int
+	// sampledCosts := costs
+
+	// mc, mcp, err := findLeastCostPatternsExhaustive(box, itemsPerBox, sampledCosts)
+	// if err != nil {
+	// 	return 0.0, nil, err
+	// }
+
+	// // TODO: padding
+	// paddedMCP := mcp
+
+	// return mc, paddedMCP, nil
 }
 
 func findLeastCostPatternsExhaustive(box, itemsPerBox int, costs [][]float64) (minCost float64, minCostPatterns [][]int, err error) {
@@ -191,17 +256,17 @@ func findLeastCosts(box, itemsPerBox int, costs [][]float64) (minCosts []float64
 		return nil, errors.New("len(costs)!=box || len(costs[*])!=itemsPerBox")
 	}
 
-	minCosts = []float64{}
-	for m := 1; m <= itemsPerBox; m++ {
+	minCosts = make([]float64, itemsPerBox)
+	for m := itemsPerBox; m >= 1; m-- { // let it "fail-fast" by starting with a large number
 		var curCosts [][]float64
 		for i := 0; i < box; i++ {
-			curCosts = append(curCosts, costs[i][:(m)])
+			curCosts = append(curCosts, costs[i][:m])
 		}
 		minCost, _, err := ComputeLeastCostPatternsFn(box, m, curCosts)
 		if err != nil {
-			fmt.Print(err)
+			return nil, err
 		}
-		minCosts = append(minCosts, minCost)
+		minCosts[m-1] = minCost
 	}
 	return minCosts, nil
 }

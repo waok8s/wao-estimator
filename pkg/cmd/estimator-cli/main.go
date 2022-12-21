@@ -149,7 +149,7 @@ func main() {
 		if len(params) != 2 {
 			help(1)
 		}
-		ctx, cncl := context.WithTimeout(context.Background(), 3*time.Second)
+		ctx, cncl := context.WithTimeout(context.Background(), 15*time.Second)
 		defer cncl()
 		pc, apiErr, err := reqPC(ctx, *addr, hk, hv, ns, name, params[0], params[1])
 		if err != nil {

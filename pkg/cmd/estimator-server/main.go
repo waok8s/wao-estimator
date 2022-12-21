@@ -19,7 +19,9 @@ var lg zerolog.Logger = log.With().Str("component", "Estimator Server (main)").L
 
 func main() {
 
-	zerolog.SetGlobalLevel(zerolog.TraceLevel)
+	zerolog.SetGlobalLevel(zerolog.InfoLevel)
+	// zerolog.SetGlobalLevel(zerolog.DebugLevel)
+	// zerolog.SetGlobalLevel(zerolog.TraceLevel)
 
 	apikeys := map[string]struct{}{}
 	host := "localhost"
@@ -33,6 +35,13 @@ func main() {
 
 	ns := &estimator.Nodes{}
 	ns.Add("n1", estimator.NewNode("n1", nil, 30*time.Second, nil))
+	ns.Add("n2", estimator.NewNode("n2", nil, 30*time.Second, nil))
+	ns.Add("n3", estimator.NewNode("n3", nil, 30*time.Second, nil))
+	// ns.Add("n4", estimator.NewNode("n4", nil, 30*time.Second, nil))
+	// ns.Add("n5", estimator.NewNode("n5", nil, 30*time.Second, nil))
+	// ns.Add("n6", estimator.NewNode("n6", nil, 30*time.Second, nil))
+	// ns.Add("n7", estimator.NewNode("n7", nil, 30*time.Second, nil))
+	// ns.Add("n8", estimator.NewNode("n8", nil, 30*time.Second, nil))
 	es := &estimator.Estimators{}
 	if ok := es.Add("default/default", &estimator.Estimator{Nodes: ns}); !ok {
 		panic("es.Add not ok")
