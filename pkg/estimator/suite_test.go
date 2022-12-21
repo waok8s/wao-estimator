@@ -156,7 +156,7 @@ var _ = Describe("Server/Client", func() {
 		name := "default"
 
 		// client
-		opts := []estimator.ClientOption{estimator.ClientOptionGetRequestAsCurl(GinkgoWriter)}
+		opts := []estimator.ClientOption{}
 		cl, err := estimator.NewClient(httpAddr, ns, name, opts...)
 		Expect(err).NotTo(HaveOccurred())
 		// server
