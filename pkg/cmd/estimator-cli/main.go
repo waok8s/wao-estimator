@@ -3,7 +3,7 @@ package main
 import (
 	"bytes"
 	"context"
-	"encoding/json"
+	"errors"
 	"flag"
 	"fmt"
 	"io"
@@ -76,14 +76,12 @@ func reqPC(ctx context.Context, addr, hk, hv, ns, name string, cpuMilli, numWork
 	return client.EstimatePowerConsumption(ctx, cpuMilli, numWorkloads)
 }
 
-func print(r io.Writer, jsonStructPointer any) error {
-	p, err := json.Marshal(jsonStructPointer)
-	if err != nil {
-		return err
+func printPC(r io.Writer, pc *estimator.PowerConsumption) error {
+	if pc.WattIncreases == nil {
+		return errors.New("got nil slice")
 	}
-	p = append(p, '\n')
-	_, err = r.Write(p)
-	return err
+	fmt.Println(*pc.WattIncreases)
+	return nil
 }
 
 func csv2Ints(s string) ([]int, error) {
@@ -160,7 +158,7 @@ func main() {
 			v("ERROR:\n  code: %v\n  message: %v", apiErr.Code, apiErr.Message)
 			os.Exit(1)
 		}
-		if err := print(os.Stdout, &pc); err != nil {
+		if err := printPC(os.Stdout, pc); err != nil {
 			v("ERROR: %v", err)
 			os.Exit(1)
 		}

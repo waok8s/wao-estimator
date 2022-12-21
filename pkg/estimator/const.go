@@ -5,7 +5,14 @@ import (
 
 	"github.com/rs/zerolog"
 	"github.com/rs/zerolog/log"
+
+	"github.com/Nedopro2022/wao-estimator/pkg/estimator/api"
 )
+
+type PowerConsumption = api.PowerConsumption
+
+type ClientOption = api.ClientOption
+type Error = api.Error
 
 var lg zerolog.Logger = log.With().Str("component", "estimator").Logger()
 

@@ -12,10 +12,6 @@ import (
 	"github.com/Nedopro2022/wao-estimator/pkg/estimator/api"
 )
 
-type PowerConsumption = api.PowerConsumption
-type ClientOption = api.ClientOption
-type Error = api.Error
-
 func ClientOptionAddRequestHeader(k, v string) ClientOption {
 	return func(c *api.Client) error {
 		c.RequestEditors = append(c.RequestEditors, func(ctx context.Context, req *http.Request) error {
