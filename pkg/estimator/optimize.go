@@ -218,7 +218,7 @@ func findLeastCostPatternsExhaustive(box, itemsPerBox int, costs [][]float64) (m
 		return 0.0, nil, err
 	}
 
-	minCost = math.MaxFloat64
+	minCost = math.Inf(1)
 	for i, v := range vv {
 		var sum float64
 		for box, itemNum := range v {

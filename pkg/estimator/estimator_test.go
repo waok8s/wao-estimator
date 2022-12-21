@@ -76,21 +76,21 @@ func Test_patchWattMatrix(t *testing.T) {
 		{"no error", args{wattMatrix: testCostsReq1}, testCostsReq1},
 		{"an error", args{wattMatrix: [][]float64{
 			{1, 2, 3},
-			{1, 2, math.MaxFloat64},
+			{1, 2, math.Inf(1)},
 			{1, 2, 3},
 		}}, [][]float64{
 			{1, 2, 3},
-			{0, math.MaxFloat64, math.MaxFloat64},
+			{0, math.Inf(1), math.Inf(1)},
 			{1, 2, 3},
 		}},
 		{"all error", args{wattMatrix: [][]float64{
-			{math.MaxFloat64, 2, 3},
-			{1, math.MaxFloat64, 3},
-			{1, 2, math.MaxFloat64},
+			{math.Inf(1), 2, 3},
+			{1, math.Inf(1), 3},
+			{1, 2, math.Inf(1)},
 		}}, [][]float64{
-			{0, math.MaxFloat64, math.MaxFloat64},
-			{0, math.MaxFloat64, math.MaxFloat64},
-			{0, math.MaxFloat64, math.MaxFloat64},
+			{0, math.Inf(1), math.Inf(1)},
+			{0, math.Inf(1), math.Inf(1)},
+			{0, math.Inf(1), math.Inf(1)},
 		}},
 	}
 	for _, tt := range tests {

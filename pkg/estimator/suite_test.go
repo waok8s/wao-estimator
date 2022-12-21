@@ -183,12 +183,12 @@ var _ = Describe("Server/Client", func() {
 		testRequest(cl, &estimator.PowerConsumption{
 			CpuMilli: 500, NumWorkloads: 5,
 		}, &estimator.PowerConsumption{
-			CpuMilli: 500, NumWorkloads: 5, WattIncreases: &[]float64{math.MaxFloat64, math.MaxFloat64, math.MaxFloat64, math.MaxFloat64, math.MaxFloat64},
+			CpuMilli: 500, NumWorkloads: 5, WattIncreases: &[]float64{math.Inf(1), math.Inf(1), math.Inf(1), math.Inf(1), math.Inf(1)},
 		}, nil)
 		testRequest(cl, &estimator.PowerConsumption{
 			CpuMilli: 1000, NumWorkloads: 1,
 		}, &estimator.PowerConsumption{
-			CpuMilli: 1000, NumWorkloads: 1, WattIncreases: &[]float64{math.MaxFloat64},
+			CpuMilli: 1000, NumWorkloads: 1, WattIncreases: &[]float64{math.Inf(1)},
 		}, nil)
 		testRequest(cl, &estimator.PowerConsumption{
 			CpuMilli: 1000, NumWorkloads: 0,

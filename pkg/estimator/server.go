@@ -4,6 +4,7 @@ import (
 	"context"
 	"errors"
 	"fmt"
+	"math"
 	"net/http"
 	"sync"
 
@@ -67,6 +68,14 @@ func (s *Server) PostNamespacesNsEstimatorsNameValuesPowerconsumption(ctx contex
 			}, nil
 		}
 	}
+
+	// HACK: replace math.Inf(1) to math.MaxFloat64 to avoid jsonify failure (see also: client.go)
+	for i := range wattIncrease {
+		if wattIncrease[i] == math.Inf(1) {
+			wattIncrease[i] = math.MaxFloat64
+		}
+	}
+
 	return api.PostNamespacesNsEstimatorsNameValuesPowerconsumption200JSONResponse{
 		CpuMilli:      request.Body.CpuMilli,
 		NumWorkloads:  request.Body.NumWorkloads,

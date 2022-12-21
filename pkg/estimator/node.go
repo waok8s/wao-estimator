@@ -125,7 +125,7 @@ func (n *Node) start() {
 		status, err := n.FetchStatus(ctx)
 		cncl()
 		if err != nil {
-			lg.Error().Msgf("could not fetch NodeStatus: %v", err)
+			lg.Warn().Msgf("could not fetch NodeStatus: %v", err)
 			return
 		}
 		n.mu.Lock()

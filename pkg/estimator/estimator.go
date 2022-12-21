@@ -50,7 +50,7 @@ func (e *Estimator) EstimatePowerConsumption(ctx context.Context, cpuMilli, numW
 				watt, err := node.Predict(ctx, cpuMilli*(j), node.GetStatus())
 				if err != nil {
 					lg.Warn().Msgf("node.Predict() for name=%s got error at wattMatrix[%d][%d] err=%v", node.Name, nodeIdx, j, err)
-					watt = math.MaxFloat64
+					watt = math.Inf(1)
 				}
 				lg.Debug().Msgf("call node.Predict() for name=%s wattMatrix[%d][%d] watt=%f", node.Name, nodeIdx, j, watt)
 				wattMatrix[nodeIdx][j] = watt
@@ -81,26 +81,26 @@ func (e *Estimator) EstimatePowerConsumption(ctx context.Context, cpuMilli, numW
 
 func patchWattMatrix(wattMatrix [][]float64) {
 	////////////////
-	// Do some replacements to ensure toDiff() returns [math.MaxFloat64 ...] for error rows.
+	// Do some replacements to ensure toDiff() returns [+Inf ...] for error rows.
 	////////////////
-	// 1. detect errors: any row includes math.MaxFloat64
-	// e.g. wattMatrix=[[1 2 3] [1 math.MaxFloat64 3]] then errs={1: struct{}}
+	// 1. detect errors: any row includes +Inf
+	// e.g. wattMatrix=[[1 2 3] [1 +Inf 3]] then errs={1: struct{}}
 	errs := map[int]struct{}{}
 	for i, row := range wattMatrix {
 		for _, elem := range row {
-			if elem == math.MaxFloat64 {
+			if elem == math.Inf(1) {
 				errs[i] = struct{}{}
 			}
 		}
 	}
-	// 2. set errors: set error rows [0 math.MaxFloat64 math.MaxFloat64 ...]
+	// 2. set errors: set error rows [0 +Inf +Inf ...]
 	for i := range wattMatrix {
 		if _, isErr := errs[i]; isErr {
 			for j := range wattMatrix[i] {
 				if j == 0 {
 					wattMatrix[i][j] = 0
 				} else {
-					wattMatrix[i][j] = math.MaxFloat64
+					wattMatrix[i][j] = math.Inf(1)
 				}
 			}
 		}
