@@ -23,6 +23,9 @@ func (e *Estimator) initOnce() {
 
 // EstimatePowerConsumption is a thread-safe function that
 // estimates power consumption with the given parameters.
+//
+// +Inf in the response represents errors in Node.GetStatus or PowerConsumptionPredictor.Predict.
+// The response will not contain -Inf or NaN, return an error instead if -Inf or NaN is encountered.
 func (e *Estimator) EstimatePowerConsumption(ctx context.Context, cpuMilli, numWorkloads int) ([]float64, error) {
 	e.initOnce()
 
@@ -76,6 +79,12 @@ func (e *Estimator) EstimatePowerConsumption(ctx context.Context, cpuMilli, numW
 	}
 	lg.Debug().Msgf("minCosts=%v", minCosts)
 
+	// validate
+	for _, v := range minCosts {
+		if math.IsInf(v, -1) || math.IsNaN(v) {
+			return nil, fmt.Errorf("-Inf or NaN detected %v (%w)", minCosts, ErrEstimator)
+		}
+	}
 	return minCosts, nil
 }
 
