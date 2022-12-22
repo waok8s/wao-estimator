@@ -149,8 +149,14 @@ kubectl port-forward -n wao-estimator-system svc/wao-estimator-controller-manage
 
 Next, run `estimator-cli` in another terminal.
 
+> 💡 `estimator-cli` for linux-x86_64 is available on the [releases page](https://github.com/Nedopro2022/wao-estimator/releases). If you have Go installed, the following command will work as well.
+> 
+> ```sh
+> go run github.com/Nedopro2022/wao-estimator/pkg/cmd/estimator-cli@latest -p 500,5 pc
+> ```
+
 ```
-$ go run github.com/Nedopro2022/wao-estimator/pkg/cmd/estimator-cli -p 500,5 pc
+$ ./estimator-cli -p 500,5 pc
 [+Inf +Inf +Inf +Inf +Inf]
 ```
 
