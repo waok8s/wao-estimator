@@ -40,7 +40,7 @@ jobs:
       - name: "build wao-estimator.yaml"
         run: REGISTRY=ghcr.io/${GITHUB_REPOSITORY_OWNER,,} ./hack/dist-manifests.sh
       - name: "build estimator-cli"
-        run: CGO=0 GOOS=linux GOARCH=amd64 go build -trimpath -ldflags "-s -w" ./pkg/cmd/estimator-cli/
+        run: CGO_ENABLED=0 GOOS=linux GOARCH=amd64 go build -trimpath -ldflags "-s -w" ./pkg/cmd/estimator-cli/
       - uses: softprops/action-gh-release@v1
         with:
           files: |
