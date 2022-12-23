@@ -87,7 +87,7 @@ kubectl apply -f https://github.com/cert-manager/cert-manager/releases/download/
 Deploy the Operator with the following command. It creates `wao-estimator-system` namespace and deploys CRDs, controllers and other resources.
 
 ```sh
-kubectl apply -f https://github.com/Nedopro2022/wao-estimator/releases/download/v0.1.0/wao-estimator.yaml
+kubectl apply -f https://github.com/Nedopro2022/wao-estimator/releases/download/v0.1.1/wao-estimator.yaml
 ```
 
 > 💡 Please verify that 3 Service objects have been created. **webhook-service** and **metrics-service** are normal and **estimator-service** is for providing WAO-Estimator APIs.
@@ -177,7 +177,7 @@ Since `spec.nodeMonitor` and `spec.powerConsumptionPredictor` are specified as `
 Delete the Operator and resources with the following command.
 
 ```sh
-kubectl delete -f https://github.com/Nedopro2022/wao-estimator/releases/download/v0.1.0/wao-estimator.yaml
+kubectl delete -f https://github.com/Nedopro2022/wao-estimator/releases/download/v0.1.1/wao-estimator.yaml
 ```
 
 ### 💡 Demo using kind and FakeNodeMonitor / FakePCPredictor

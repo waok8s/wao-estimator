@@ -9,6 +9,13 @@ import (
 	"github.com/Nedopro2022/wao-estimator/pkg/estimator/api"
 )
 
+func init() {
+	// Disable logs by default
+	// - not to show logs when this package is used as a library
+	// - set `zerolog.SetGlobalLevel(zerolog.InfoLevel)` in main() if you need logs
+	zerolog.SetGlobalLevel(zerolog.Disabled)
+}
+
 type PowerConsumption = api.PowerConsumption
 
 type ClientOption = api.ClientOption
