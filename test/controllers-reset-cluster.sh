@@ -15,10 +15,7 @@ lib::start-docker
 
 lib::create-cluster "$cluster" "$KIND_IMAGE"
 
-sleep 15
-
 "$KUBECTL" get nodes
-
 
 "$KUBECTL" label nodes "$cluster"-worker  "waofed.bitmedia.co.jp/node-monitor"="Fake"
 "$KUBECTL" label nodes "$cluster"-worker  "waofed.bitmedia.co.jp/node-status.cpusockets"="2"
