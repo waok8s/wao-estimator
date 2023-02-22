@@ -13,7 +13,7 @@ type Node struct {
 	mu     sync.Mutex
 	stopCh chan struct{}
 
-	monitor    NodeMonitor
+	monitors   []NodeMonitor
 	nmInterval time.Duration
 	status     *NodeStatus
 
@@ -23,11 +23,17 @@ type Node struct {
 var _ NodeMonitor = (*Node)(nil)
 var _ PowerConsumptionPredictor = (*Node)(nil)
 
-func (n *Node) FetchStatus(ctx context.Context, base *NodeStatus) (*NodeStatus, error) {
-	if n.monitor == nil {
-		return nil, ErrNodeMonitorNotFound
+func (n *Node) FetchStatus(ctx context.Context, base *NodeStatus) error {
+	if base == nil {
+		base = NewNodeStatus()
 	}
-	return n.monitor.FetchStatus(ctx, base)
+	for i, nm := range n.monitors {
+		err := nm.FetchStatus(ctx, base)
+		if err != nil {
+			lg.Warn().Msgf("FetchStatus failed NodeMonitor[%d] err=%v", i, err)
+		}
+	}
+	return nil
 }
 
 func (n *Node) Predict(ctx context.Context, requestCPUMilli int, status *NodeStatus) (watt float64, err error) {
@@ -37,11 +43,11 @@ func (n *Node) Predict(ctx context.Context, requestCPUMilli int, status *NodeSta
 	return n.pcPredictor.Predict(ctx, requestCPUMilli, status)
 }
 
-func NewNode(name string, nm NodeMonitor, nodeStatusRefreshInterval time.Duration, pcp PowerConsumptionPredictor) *Node {
+func NewNode(name string, nms []NodeMonitor, nodeStatusRefreshInterval time.Duration, pcp PowerConsumptionPredictor) *Node {
 	n := Node{
 		Name:        name,
 		stopCh:      make(chan struct{}),
-		monitor:     nm,
+		monitors:    nms,
 		pcPredictor: pcp,
 		nmInterval:  nodeStatusRefreshInterval,
 	}
@@ -55,12 +61,9 @@ func (n *Node) start() {
 	updateStatus := func() {
 		timeout := n.nmInterval / 2
 		ctx, cncl := context.WithTimeout(context.Background(), timeout)
-		status, err := n.FetchStatus(ctx, NewNodeStatus())
+		status := NewNodeStatus()
+		_ = n.FetchStatus(ctx, status) // this does not return errors
 		cncl()
-		if err != nil {
-			lg.Warn().Msgf("could not fetch NodeStatus: %v", err)
-			return
-		}
 		n.mu.Lock()
 		n.status = status
 		n.mu.Unlock()

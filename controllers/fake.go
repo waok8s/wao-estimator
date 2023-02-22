@@ -26,7 +26,7 @@ const (
 )
 
 func setupFakeNodeMonitor(k8sClient client.Client, nodeObjKey client.ObjectKey) estimator.NodeMonitor {
-	fn := func(ctx context.Context, base *estimator.NodeStatus) (*estimator.NodeStatus, error) {
+	fn := func(ctx context.Context, base *estimator.NodeStatus) error {
 
 		if base == nil {
 			base = estimator.NewNodeStatus()
@@ -34,28 +34,25 @@ func setupFakeNodeMonitor(k8sClient client.Client, nodeObjKey client.ObjectKey) 
 
 		var node corev1.Node
 		if err := k8sClient.Get(ctx, nodeObjKey, &node); err != nil {
-			return nil, err
+			return err
 		}
 
 		cu, err := labelValueFloat(node.Labels, labelNodeStatusCPUUsage)
-		if err != nil && !errors.Is(err, errLabelNotFound) {
-			return nil, err
+		if err == nil {
+			estimator.NodeStatusSetCPUUsage(base, cu)
 		}
-		estimator.NodeStatusSetCPUUsage(base, cu)
 
 		at, err := labelValueFloat(node.Labels, labelNodeStatusAmbientTemp)
-		if err != nil && !errors.Is(err, errLabelNotFound) {
-			return nil, err
+		if err == nil {
+			estimator.NodeStatusSetAmbientTemp(base, at)
 		}
-		estimator.NodeStatusSetAmbientTemp(base, at)
 
 		spd, err := labelValueFloat(node.Labels, labelNodeStatusStaticPressureDiff)
-		if err != nil && !errors.Is(err, errLabelNotFound) {
-			return nil, err
+		if err == nil {
+			estimator.NodeStatusSetStaticPressureDiff(base, spd)
 		}
-		estimator.NodeStatusSetStaticPressureDiff(base, spd)
 
-		return base, nil
+		return nil
 	}
 
 	nm := &estimator.FakeNodeMonitor{FetchFunc: fn}

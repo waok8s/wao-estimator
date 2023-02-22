@@ -2,7 +2,6 @@ package estimator
 
 import (
 	"context"
-	"reflect"
 	"testing"
 	"time"
 )
@@ -75,27 +74,39 @@ func TestNode_FetchStatus(t *testing.T) {
 		wantErr bool
 	}{
 		{"nm==nil", &Node{
-			Name:    "n1",
-			monitor: nil,
-		}, nil, true},
+			Name:     "n1",
+			monitors: nil,
+		}, nil, false},
 		{"nm!=nil", &Node{
-			Name:    "n1",
-			monitor: &FakeNodeMonitor{FetchFunc: func(context.Context, *NodeStatus) (*NodeStatus, error) { return testNodeStatus, nil }},
+			Name: "n1",
+			monitors: []NodeMonitor{
+				&FakeNodeMonitor{FetchFunc: func(context.Context, *NodeStatus) error { return nil }},
+			},
 		}, testNodeStatus, false},
-		{"failed", &Node{
-			Name:    "n1",
-			monitor: &FakeNodeMonitor{FetchFunc: func(context.Context, *NodeStatus) (*NodeStatus, error) { return nil, ErrNodeMonitor }},
-		}, nil, true},
+		{"all ok", &Node{
+			Name: "n1",
+			monitors: []NodeMonitor{
+				&FakeNodeMonitor{FetchFunc: func(context.Context, *NodeStatus) error { return nil }},
+				&FakeNodeMonitor{FetchFunc: func(context.Context, *NodeStatus) error { return nil }},
+				&FakeNodeMonitor{FetchFunc: func(context.Context, *NodeStatus) error { return nil }},
+			},
+		}, nil, false},
+		{"some NodeMonitor return error", &Node{
+			Name: "n1",
+			monitors: []NodeMonitor{
+				&FakeNodeMonitor{FetchFunc: func(context.Context, *NodeStatus) error { return nil }},
+				&FakeNodeMonitor{FetchFunc: func(context.Context, *NodeStatus) error { return ErrNodeMonitor }},
+				&FakeNodeMonitor{FetchFunc: func(context.Context, *NodeStatus) error { return ErrNodeMonitor }},
+				&FakeNodeMonitor{FetchFunc: func(context.Context, *NodeStatus) error { return nil }},
+			},
+		}, nil, false},
 	}
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
-			got, err := tt.node.FetchStatus(context.Background(), NewNodeStatus())
+			err := tt.node.FetchStatus(context.Background(), testNodeStatus)
 			if (err != nil) != tt.wantErr {
 				t.Errorf("Node.FetchStatus() error = %v, wantErr %v", err, tt.wantErr)
 				return
-			}
-			if !reflect.DeepEqual(got, tt.want) {
-				t.Errorf("Node.FetchStatus() = %v, want %v", got, tt.want)
 			}
 		})
 	}
