@@ -197,11 +197,10 @@ var _ = Describe("Server/Client", func() {
 		}, nil)
 
 		// test: n0, n1 (fake)
-		nm1 := &estimator.FakeNodeMonitor{FetchFunc: func(context.Context) (estimator.NodeStatus, error) {
-			t := func() time.Time { return time.Now() }
-			return estimator.NodeStatus{Timestamp: t()}, nil
+		nm1 := &estimator.FakeNodeMonitor{FetchFunc: func(context.Context, *estimator.NodeStatus) (*estimator.NodeStatus, error) {
+			return estimator.NewNodeStatus(), nil
 		}}
-		pcp1 := &estimator.FakePCPredictor{PredictFunc: func(_ context.Context, requestCPUMilli int, _ estimator.NodeStatus) (watt float64, err error) {
+		pcp1 := &estimator.FakePCPredictor{PredictFunc: func(_ context.Context, requestCPUMilli int, _ *estimator.NodeStatus) (watt float64, err error) {
 			// 100mCPU/W
 			return float64(requestCPUMilli) / 100, nil
 		}}
@@ -216,11 +215,10 @@ var _ = Describe("Server/Client", func() {
 		}, nil)
 
 		// test: n0, n1, n2 (fake)
-		nm2 := &estimator.FakeNodeMonitor{FetchFunc: func(context.Context) (estimator.NodeStatus, error) {
-			t := func() time.Time { return time.Now() }
-			return estimator.NodeStatus{Timestamp: t()}, nil
+		nm2 := &estimator.FakeNodeMonitor{FetchFunc: func(context.Context, *estimator.NodeStatus) (*estimator.NodeStatus, error) {
+			return estimator.NewNodeStatus(), nil
 		}}
-		pcp2 := &estimator.FakePCPredictor{PredictFunc: func(_ context.Context, requestCPUMilli int, _ estimator.NodeStatus) (watt float64, err error) {
+		pcp2 := &estimator.FakePCPredictor{PredictFunc: func(_ context.Context, requestCPUMilli int, _ *estimator.NodeStatus) (watt float64, err error) {
 			// 200mCPU/W
 			return float64(requestCPUMilli) / 200, nil
 		}}
@@ -317,30 +315,22 @@ var _ = Describe("Node/Nodes", func() {
 	ctx := context.Background()
 
 	nm0 := &estimator.FakeNodeMonitor{
-		FetchFunc: func(ctx context.Context) (estimator.NodeStatus, error) {
+		FetchFunc: func(ctx context.Context, base *estimator.NodeStatus) (*estimator.NodeStatus, error) {
 			time.Sleep(50 * time.Millisecond)
-			return estimator.NodeStatus{
-				Timestamp:      time.Now(),
-				CPUSockets:     2,
-				CPUCores:       4,
-				CPUUsages:      [][]float64{{10.0, 10.0, 10.0, 10.0}, {10.0, 10.0, 10.0, 10.0}},
-				CPUTemps:       [][]float64{{30.0, 30.0, 30.0, 30.0}, {30.0, 30.0, 30.0, 30.0}},
-				AmbientSensors: 2,
-				AmbientTemps:   []float64{20.0, 20.0},
-			}, nil
+			return setNodeStatus(base, 10.0, 20.0, 0.0), nil
 		},
 	}
 	nm1 := &estimator.FakeNodeMonitor{
-		FetchFunc: func(ctx context.Context) (estimator.NodeStatus, error) {
+		FetchFunc: func(ctx context.Context, base *estimator.NodeStatus) (*estimator.NodeStatus, error) {
 			time.Sleep(50 * time.Millisecond)
-			return estimator.NodeStatus{}, estimator.ErrNodeMonitor
+			return nil, estimator.ErrNodeMonitor
 		},
 	}
 	pcp0 := &estimator.FakePCPredictor{
 		PredictFunc: estimator.PredictPCFnDummy,
 	}
 	pcp1 := &estimator.FakePCPredictor{
-		PredictFunc: func(context.Context, int, estimator.NodeStatus) (float64, error) {
+		PredictFunc: func(context.Context, int, *estimator.NodeStatus) (float64, error) {
 			return 0.0, estimator.ErrPCPredictor
 		},
 	}
@@ -350,39 +340,45 @@ var _ = Describe("Node/Nodes", func() {
 
 	// n0: normal case
 	n0 := estimator.NewNode("n0", nm0, intv, pcp0)
-	status := n0.GetStatus()
-	Expect(status.Timestamp).To(Equal(time.Time{}))
+	Eventually(func() time.Time {
+		return n0.GetStatus().Timestamp()
+	}).ShouldNot(Equal(time.Time{}))
 
 	ok := nodes.Add("n0", n0) // nodes.Add() calls Node.start()
 	Expect(ok).To(BeTrue())
 
 	Eventually(func() time.Time {
-		return n0.GetStatus().Timestamp
+		return n0.GetStatus().Timestamp()
 	}).ShouldNot(Equal(time.Time{}))
 
-	watt, err := n0.Predict(ctx, 2000, estimator.NodeStatus{
-		CPUUsages:    [][]float64{{30.0}},
-		AmbientTemps: []float64{20.0},
-	})
+	watt, err := n0.Predict(ctx, 2000, setNodeStatus(nil, 30.0, 20.0, 0.0))
 	Expect(err).NotTo(HaveOccurred())
 	Expect(watt).To(Equal(70.0))
 
 	// n1: error case
 	n1 := estimator.NewNode("n1", nm1, intv, pcp1)
-	status = n1.GetStatus()
-	Expect(status.Timestamp).To(Equal(time.Time{}))
+	Eventually(func() time.Time {
+		return n1.GetStatus().Timestamp()
+	}).ShouldNot(Equal(time.Time{}))
 
 	ok = nodes.Add("n1", n1)
 	Expect(ok).To(BeTrue())
 
 	time.Sleep(intv)
 	Eventually(func() time.Time {
-		return n1.GetStatus().Timestamp
-	}).Should(Equal(time.Time{}))
+		return n1.GetStatus().Timestamp()
+	}).ShouldNot(Equal(time.Time{}))
 
-	_, err = n1.Predict(ctx, 2000, estimator.NodeStatus{
-		CPUUsages:    [][]float64{{30.0}},
-		AmbientTemps: []float64{20.0},
-	})
+	_, err = n1.Predict(ctx, 2000, setNodeStatus(nil, 30.0, 20.0, 0.0))
 	Expect(err).To(HaveOccurred())
 })
+
+func setNodeStatus(base *estimator.NodeStatus, cpuUsage, ambientTemp, staticPressureDiff float64) *estimator.NodeStatus {
+	if base == nil {
+		base = estimator.NewNodeStatus()
+	}
+	estimator.NodeStatusSetCPUUsage(base, cpuUsage)
+	estimator.NodeStatusSetAmbientTemp(base, ambientTemp)
+	estimator.NodeStatusSetStaticPressureDiff(base, staticPressureDiff)
+	return base
+}

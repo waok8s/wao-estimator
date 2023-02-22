@@ -7,73 +7,6 @@ import (
 	"time"
 )
 
-type NodeStatus struct {
-	Timestamp time.Time
-
-	// CPUSockets is the number of sockets the node has.
-	// e.g. 2
-	CPUSockets int
-	// CPUCores is the number of cores per CPU.
-	// e.g. 4
-	CPUCores int
-	// CPUUsages is the list of CPU usages per core.
-	// e.g. [[10.0, 10.0, 10.0, 10.0], [20.0, 20.0, 20.0, 20.0]]
-	CPUUsages [][]float64
-	// CPUTemps is the list of CPU temperatures in Celsius per core.
-	// e.g. [[30.0, 30.0, 30.0, 30.0], [50.0, 50.0, 50.0, 50.0]]
-	CPUTemps [][]float64
-
-	// AmbientSensors is the number of ambient temperature sensors the node has.
-	// e.g. 4
-	AmbientSensors int
-	// AmbientTemps is the list of temperatures in Celsius.
-	// e.g. [20.0, 20.0, 20.0, 20.0]
-	AmbientTemps []float64
-}
-
-func (s *NodeStatus) AverageCPUUsage() (float64, error) {
-	var c int
-	var sum float64
-	for _, temps := range s.CPUUsages {
-		for _, e := range temps {
-			sum += e
-			c++
-		}
-	}
-	if c == 0 {
-		return sum, ErrNodeStatus
-	}
-	return sum / float64(c), nil
-}
-
-func (s *NodeStatus) AverageCPUTemp() (float64, error) {
-	var c int
-	var sum float64
-	for _, temps := range s.CPUTemps {
-		for _, e := range temps {
-			sum += e
-			c++
-		}
-	}
-	if c == 0 {
-		return sum, ErrNodeStatus
-	}
-	return sum / float64(c), nil
-}
-
-func (s *NodeStatus) AverageAmbientTemp() (float64, error) {
-	var c int
-	var sum float64
-	for _, e := range s.AmbientTemps {
-		sum += e
-		c++
-	}
-	if c == 0 {
-		return sum, ErrNodeStatus
-	}
-	return sum / float64(c), nil
-}
-
 type Node struct {
 	Name string
 
@@ -82,7 +15,7 @@ type Node struct {
 
 	monitor    NodeMonitor
 	nmInterval time.Duration
-	status     NodeStatus
+	status     *NodeStatus
 
 	pcPredictor PowerConsumptionPredictor
 }
@@ -90,14 +23,14 @@ type Node struct {
 var _ NodeMonitor = (*Node)(nil)
 var _ PowerConsumptionPredictor = (*Node)(nil)
 
-func (n *Node) FetchStatus(ctx context.Context) (NodeStatus, error) {
+func (n *Node) FetchStatus(ctx context.Context, base *NodeStatus) (*NodeStatus, error) {
 	if n.monitor == nil {
-		return NodeStatus{}, ErrNodeMonitorNotFound
+		return nil, ErrNodeMonitorNotFound
 	}
-	return n.monitor.FetchStatus(ctx)
+	return n.monitor.FetchStatus(ctx, base)
 }
 
-func (n *Node) Predict(ctx context.Context, requestCPUMilli int, status NodeStatus) (watt float64, err error) {
+func (n *Node) Predict(ctx context.Context, requestCPUMilli int, status *NodeStatus) (watt float64, err error) {
 	if n.pcPredictor == nil {
 		return 0.0, ErrPCPredictorNotFound
 	}
@@ -122,7 +55,7 @@ func (n *Node) start() {
 	updateStatus := func() {
 		timeout := n.nmInterval / 2
 		ctx, cncl := context.WithTimeout(context.Background(), timeout)
-		status, err := n.FetchStatus(ctx)
+		status, err := n.FetchStatus(ctx, NewNodeStatus())
 		cncl()
 		if err != nil {
 			lg.Warn().Msgf("could not fetch NodeStatus: %v", err)
@@ -152,9 +85,14 @@ func (n *Node) stop() {
 	close(n.stopCh)
 }
 
-func (n *Node) GetStatus() NodeStatus {
+// GetStatus returns current status of the Node,
+// if Node.status is nil then returns a new empty NodeStatus.
+func (n *Node) GetStatus() *NodeStatus {
 	n.mu.Lock()
 	defer n.mu.Unlock()
+	if n.status == nil {
+		return NewNodeStatus()
+	}
 	return n.status
 }
 
