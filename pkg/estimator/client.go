@@ -60,7 +60,7 @@ func (c *Client) EstimatePowerConsumption(ctx context.Context, cpuMilli, numWork
 	}
 	switch resp.StatusCode() {
 	case http.StatusOK:
-		// HACK: restore math.Float64 to math.Inf(1) (see also: server.go)
+		// HACK: restore math.MaxFloat64 to math.Inf(1) (see also: server.go)
 		for i := range *resp.JSON200.WattIncreases {
 			if (*resp.JSON200.WattIncreases)[i] == math.MaxFloat64 {
 				(*resp.JSON200.WattIncreases)[i] = math.Inf(1)
