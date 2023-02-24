@@ -1,0 +1,8 @@
+{
+    "name": "model1",
+    "implementation": "mlserver_lightgbm.LightGBMModel",
+    "parameters": {
+        "uri": "./pseudo_power_model.bst",
+        "version": "v0.1.0"
+    }
+}
