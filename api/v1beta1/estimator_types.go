@@ -15,58 +15,81 @@ const (
 type NodeMonitorType string
 
 const (
-	NodeMonitorTypeNone         = "None"
-	NodeMonitorTypeFake         = "Fake"
-	NodeMonitorTypeIPMIExporter = "IPMIExporter"
-	NodeMonitorTypeRedfish      = "Redfish"
+	NodeMonitorTypeNone                    = "None"
+	NodeMonitorTypeFake                    = "Fake"
+	NodeMonitorTypeIPMIExporter            = "IPMIExporter"
+	NodeMonitorTypeRedfish                 = "Redfish"
+	NodeMonitorTypeDifferentialPressureAPI = "DifferentialPressureAPI"
 )
+
+type NodeMonitorAgent struct {
+	Type     NodeMonitorType `json:"type"`
+	Endpoint string          `json:"endpoint,omitempty"`
+}
+
+type NodeMonitor struct {
+	RefreshInterval *metav1.Duration   `json:"refreshInterval,omitempty"`
+	Agents          []NodeMonitorAgent `json:"agents"`
+}
 
 type PowerConsumptionPredictorType string
 
 const (
-	PowerConsumptionPredictorTypeNone      = "None"
-	PowerConsumptionPredictorTypeFake      = "Fake"
-	PowerConsumptionPredictorTypeMLServer  = "MLServer"
-	PowerConsumptionPredictorTypeTFServing = "TFServing"
+	PowerConsumptionPredictorTypeNone     = "None"
+	PowerConsumptionPredictorTypeFake     = "Fake"
+	PowerConsumptionPredictorTypeMLServer = "MLServer"
+	// PowerConsumptionPredictorTypeTFServing = "TFServing"
 )
 
-type FieldRef struct {
-	Label *string `json:"label,omitempty"`
-}
-
-type Field struct {
-	Default  string    `json:"default"`
-	Override *FieldRef `json:"override,omitempty"`
-}
-
-type NodeMonitor struct {
-	Type            Field            `json:"type"`
-	RefreshInterval *metav1.Duration `json:"refreshInterval,omitempty"`
-	IPMIExporter    *IPMIExporter    `json:"ipmiExporter,omitempty"`
-	Redfish         *Redfish         `json:"redfish,omitempty"`
-}
-
-type IPMIExporter struct {
-	Endpoint Field `json:"endpoint"`
-}
-
-type Redfish struct {
-	Endpoint Field `json:"endpoint"`
-}
-
 type PowerConsumptionPredictor struct {
-	Type     Field     `json:"type"`
-	MLServer *MLServer `json:"mlServer,omitempty"`
+	Type     PowerConsumptionPredictorType `json:"type"`
+	Endpoint string                        `json:"endpoint,omitempty"`
 }
 
-type MLServer struct {
-	Endpoint Field `json:"endpoint"`
+type NodeConfig struct {
+	NodeMonitor               *NodeMonitor               `json:"nodeMonitor,omitempty"`
+	PowerConsumptionPredictor *PowerConsumptionPredictor `json:"powerConsumptionPredictor,omitempty"`
 }
 
 // EstimatorSpec defines the desired state of Estimator
 type EstimatorSpec struct {
-	NodeMonitor               *NodeMonitor               `json:"nodeMonitor,omitempty"`
-	PowerConsumptionPredictor *PowerConsumptionPredictor `json:"powerConsumptionPredictor,omitempty"`
+	DefaultNodeConfig   *NodeConfig            `json:"defaultNodeConfig,omitempty"`
+	NodeConfigOverrides map[string]*NodeConfig `json:"nodeConfigOverrides,omitempty"`
+}
+
+func (r *Estimator) MergeNodeConfig(nodeName string) *NodeConfig {
+
+	merged := r.Spec.DefaultNodeConfig.DeepCopy()
+
+	v, ok := r.Spec.NodeConfigOverrides[nodeName]
+
+	// no overrides
+	if !ok || v == nil {
+		return merged
+	}
+
+	overrides := v.DeepCopy()
+
+	// override NodeMonitor
+	if overrides.NodeMonitor != nil {
+		if overrides.NodeMonitor.RefreshInterval != nil {
+			merged.NodeMonitor.RefreshInterval = overrides.NodeMonitor.RefreshInterval
+		}
+		if len(overrides.NodeMonitor.Agents) != 0 {
+			merged.NodeMonitor.Agents = overrides.NodeMonitor.Agents
+		}
+	}
+	// override PowerConsumptionPredictor
+	if overrides.PowerConsumptionPredictor != nil {
+		if overrides.PowerConsumptionPredictor.Type != "" {
+			merged.PowerConsumptionPredictor.Type = overrides.PowerConsumptionPredictor.Type
+		}
+		if overrides.PowerConsumptionPredictor.Endpoint != "" {
+			merged.PowerConsumptionPredictor.Endpoint = overrides.PowerConsumptionPredictor.Endpoint
+		}
+	}
+
+	return merged
 }
 
 // EstimatorStatus defines the observed state of Estimator

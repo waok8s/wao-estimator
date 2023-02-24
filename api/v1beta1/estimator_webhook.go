@@ -24,24 +24,34 @@ var _ webhook.Defaulter = &Estimator{}
 // Default implements webhook.Defaulter so a webhook will be registered for the type
 func (r *Estimator) Default() {
 	estimatorlog.Info("default", "name", r.Name)
-	r.defaultNodeMonitor()
-	r.defaultPowerConsumptionPredictor()
+	r.defaultDefaultNodeConfig()
+	r.defaultNodeConfigOverrides()
 }
 
-func (r *Estimator) defaultNodeMonitor() {
-	if r.Spec.NodeMonitor == nil {
-		r.Spec.NodeMonitor = &NodeMonitor{Type: Field{Default: NodeMonitorTypeNone}}
+func (r *Estimator) defaultDefaultNodeConfig() {
+	if r.Spec.DefaultNodeConfig == nil {
+		r.Spec.DefaultNodeConfig = &NodeConfig{}
 	}
-	if r.Spec.NodeMonitor.RefreshInterval == nil {
-		r.Spec.NodeMonitor.RefreshInterval = &metav1.Duration{Duration: DefaultNodeMonitorRefreshInterval}
+	// NodeMonitor
+	if r.Spec.DefaultNodeConfig.NodeMonitor == nil {
+		r.Spec.DefaultNodeConfig.NodeMonitor = &NodeMonitor{}
+	}
+	if r.Spec.DefaultNodeConfig.NodeMonitor.RefreshInterval == nil {
+		r.Spec.DefaultNodeConfig.NodeMonitor.RefreshInterval = &metav1.Duration{Duration: DefaultNodeMonitorRefreshInterval}
+	}
+	if r.Spec.DefaultNodeConfig.NodeMonitor.Agents == nil {
+		r.Spec.DefaultNodeConfig.NodeMonitor.Agents = []NodeMonitorAgent{}
+	}
+	// PowerConsumptionPredictor
+	if r.Spec.DefaultNodeConfig.PowerConsumptionPredictor == nil {
+		r.Spec.DefaultNodeConfig.PowerConsumptionPredictor = &PowerConsumptionPredictor{}
+	}
+	if r.Spec.DefaultNodeConfig.PowerConsumptionPredictor.Type == "" {
+		r.Spec.DefaultNodeConfig.PowerConsumptionPredictor.Type = PowerConsumptionPredictorTypeNone
 	}
 }
 
-func (r *Estimator) defaultPowerConsumptionPredictor() {
-	if r.Spec.PowerConsumptionPredictor == nil {
-		r.Spec.PowerConsumptionPredictor = &PowerConsumptionPredictor{Type: Field{Default: PowerConsumptionPredictorTypeNone}}
-	}
-}
+func (r *Estimator) defaultNodeConfigOverrides() {}
 
 // NOTE: change verbs to "verbs=create;update;delete" if you want to enable deletion validation.
 //+kubebuilder:webhook:path=/validate-waofed-bitmedia-co-jp-v1beta1-estimator,mutating=false,failurePolicy=fail,sideEffects=None,groups=waofed.bitmedia.co.jp,resources=estimators,verbs=create;update,versions=v1beta1,name=vestimator.kb.io,admissionReviewVersions=v1
