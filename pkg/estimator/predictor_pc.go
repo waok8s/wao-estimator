@@ -5,6 +5,7 @@ import (
 	"context"
 	"encoding/json"
 	"fmt"
+	"math"
 	"net/http"
 	"net/url"
 
@@ -58,14 +59,30 @@ var _ PowerConsumptionPredictor = (*MLServerPCPredictor)(nil)
 
 func (p *MLServerPCPredictor) Predict(ctx context.Context, requestCPUMilli int, status *NodeStatus) (watt float64, err error) {
 
-	// TODO: convert requestCPUMilli to CPU usage
-	cpuUsage := 10.0
-	// TODO: fetch the ambient sensor number used in the model and get the value
-	ambientTemp := 22.0
-	// TODO: fetch staticPressureDiff
-	staticPressureDiff := 0.2
+	currentCPUUsage, err := NodeStatusGetCPUUsage(status)
+	if err != nil {
+		return math.MaxFloat64, fmt.Errorf("could not get current CPU usage (%w): %v", ErrPCPredictor, err)
+	}
 
-	return p.POSTPredictRequest(ctx, cpuUsage, ambientTemp, staticPressureDiff)
+	ambientTemp, err := NodeStatusGetAmbientTemp(status)
+	if err != nil {
+		return math.MaxFloat64, fmt.Errorf("could not get ambient temp (%w): %v", ErrPCPredictor, err)
+	}
+
+	staticPressureDiff, err := NodeStatusGetStaticPressureDiff(status)
+	if err != nil {
+		return math.MaxFloat64, fmt.Errorf("could not get ambient temp (%w): %v", ErrPCPredictor, err)
+	}
+
+	logicalProcessors, err := NodeStatusGetLogicalProcessors(status)
+	if err != nil {
+		return math.MaxFloat64, fmt.Errorf("could not get logical processors (%w): %v", ErrPCPredictor, err)
+	}
+
+	totalCPUMilli := logicalProcessors * 1000
+	requestCPUUsage := float64(requestCPUMilli) / float64(totalCPUMilli)
+
+	return p.POSTPredictRequest(ctx, currentCPUUsage+requestCPUUsage, ambientTemp, staticPressureDiff)
 }
 
 // getURLV2Infer returns the API endpoint.

@@ -127,15 +127,15 @@ func TestNode_Predict(t *testing.T) {
 		{"pcp==nil", &Node{
 			Name:        "n1",
 			pcPredictor: nil,
-		}, args{2000, newNodeStatus(20.0, 20.0, 0.0)}, 0.0, true},
+		}, args{2000, newNodeStatus(20.0, 20.0)}, 0.0, true},
 		{"pcp!=nil", &Node{
 			Name:        "n1",
 			pcPredictor: &FakePCPredictor{PredictFunc: PredictPCFnDummy},
-		}, args{2000, newNodeStatus(20.0, 10.0, 0.0)}, 50.0, false},
+		}, args{2000, newNodeStatus(20.0, 10.0)}, 50.0, false},
 		{"failed", &Node{
 			Name:        "n1",
 			pcPredictor: &FakePCPredictor{PredictFunc: func(context.Context, int, *NodeStatus) (float64, error) { return 0.0, ErrPCPredictor }},
-		}, args{2000, newNodeStatus(20.0, 20.0, 0.0)}, 0.0, true},
+		}, args{2000, newNodeStatus(20.0, 20.0)}, 0.0, true},
 	}
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {

@@ -7,11 +7,10 @@ import (
 	"testing"
 )
 
-func newNodeStatus(cpuUsage, ambientTemp, staticPressureDiff float64) *NodeStatus {
+func newNodeStatus(cpuUsage, ambientTemp float64) *NodeStatus {
 	v := NewNodeStatus()
 	NodeStatusSetCPUUsage(v, cpuUsage)
 	NodeStatusSetAmbientTemp(v, ambientTemp)
-	NodeStatusSetStaticPressureDiff(v, staticPressureDiff)
 	return v
 }
 
@@ -31,9 +30,9 @@ func TestFakePCPredictor_Predict(t *testing.T) {
 		wantWatt float64
 		wantErr  bool
 	}{
-		{"PredictFunc=nil", fields{nil}, args{context.Background(), 2000, newNodeStatus(30.0, 20.0, 0.0)}, 0.0, true},
-		{"70", fields{PredictPCFnDummy}, args{context.Background(), 2000, newNodeStatus(30.0, 20.0, 0.0)}, 70.0, false},
-		{"80", fields{PredictPCFnDummy}, args{context.Background(), 2000, newNodeStatus(35.0, 25.0, 0.0)}, 80.0, false},
+		{"PredictFunc=nil", fields{nil}, args{context.Background(), 2000, newNodeStatus(30.0, 20.0)}, 0.0, true},
+		{"70", fields{PredictPCFnDummy}, args{context.Background(), 2000, newNodeStatus(30.0, 20.0)}, 70.0, false},
+		{"80", fields{PredictPCFnDummy}, args{context.Background(), 2000, newNodeStatus(35.0, 25.0)}, 80.0, false},
 		{"err", fields{PredictPCFnDummy}, args{context.Background(), 2000, NewNodeStatus()}, 0.0, true},
 	}
 	for _, tt := range tests {
