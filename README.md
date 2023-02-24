@@ -18,6 +18,8 @@ WAO-Estimator provides power consumption estimation capabilities to help schedul
   - [Setup WAO-Estimator by deploying an Estimator resource.](#setup-wao-estimator-by-deploying-an-estimator-resource)
   - [Check operation with estimator-cli](#check-operation-with-estimator-cli)
   - [Detailed configuration of Estimator resource](#detailed-configuration-of-estimator-resource)
+    - [NodeMonitor](#nodemonitor)
+    - [PowerConsumptionPredictor](#powerconsumptionpredictor)
   - [Uninstallation](#uninstallation)
   - [💡 Demo using kind and FakeNodeMonitor / FakePCPredictor](#-demo-using-kind-and-fakenodemonitor--fakepcpredictor)
 - [Technical Details](#technical-details)
@@ -170,6 +172,56 @@ Since `spec.nodeMonitor` and `spec.powerConsumptionPredictor` are specified as `
 ### Detailed configuration of Estimator resource
 
 // TODO
+
+#### NodeMonitor
+
+```yaml
+    nodeMonitor:
+      refreshInterval: 30s
+      agents:
+        - type: None
+          endpoint: ""
+        - type: Fake
+          endpoint: ""
+```
+
+| Type                      | Description                                                                 | Endpoint value                                          | Example                                   |
+| ------------------------- | --------------------------------------------------------------------------- | ------------------------------------------------------- | ----------------------------------------- |
+| `None`                    | do nothing                                                                  | ignored                                                 | `""`                                      |
+| `Fake`                    | a fake NodeMonitor for test                                                 | ignored                                                 | `""`                                      |
+| `MetricsAPI`              | [Kubernetes Metrics API](https://github.com/kubernetes-sigs/metrics-server) | currently ignored (only in-cluster config is supported) | `""`                                      |
+| `DifferentialPressureAPI` | WAO Differential API                                                        | API Endpoint                                            | `http://hogehoge:5000/api/sensor/101037B` |
+| `IPMIExporter`            | [IPMI Exporter](https://github.com/prometheus-community/ipmi_exporter)      | API Endpoint                                            | `http://hogehoge:9290/metrics`            |
+| `Redfish`                 | [Redfish](https://www.dmtf.org/standards/redfish)                           | API Endpoint                                            | `https://10.0.0.1/redfish/v1`             |
+
+
+| NodeMonitor               | Provided NodeStatus Type       | Implementation Details                                                  |
+| ------------------------- | ------------------------------ | ----------------------------------------------------------------------- |
+| `Fake`                    | `NodeStatusCPUUsage`           | fetch node label `waofed.bitmedia.co.jp/node-status.cpuusage`           |
+| `Fake`                    | `NodeStatusAmbientTemp`        | fetch node label `waofed.bitmedia.co.jp/node-status.cpuusage`           |
+| `Fake`                    | `NodeStatusStaticPressureDiff` | fetch node label `waofed.bitmedia.co.jp/node-status.staticpressurediff` |
+| `MetricsAPI`              | `NodeStatusCPUUsage`           | client-go access Metrics API                                            |
+| `MetricsAPI`              | `NodeStatusLogicalProcessors`  | client-go access Metrics API                                            |
+| `DifferentialPressureAPI` | `NodeStatusStaticPressureDiff` | via WAO DifferentialPressureAPI                                         |
+| `IPMIExporter`            | `NodeStatusAmbientTemp`        | via IPMI                                                                |
+| `Redfish`                 | `NodeStatusAmbientTemp`        | via Redfish REST API                                                    |
+| `Redfish`                 | `NodeStatusStaticPressureDiff` | via Redfish REST API                                                    |
+
+#### PowerConsumptionPredictor
+
+```yaml
+    powerConsumptionPredictor:
+      type: None
+      endpoint: ""
+```
+
+
+| Type       | Description                                                                                                         | Endpoint value                                                                 | Example                                                | NodeStatus required                                                                                          |
+| ---------- | ------------------------------------------------------------------------------------------------------------------- | ------------------------------------------------------------------------------ | ------------------------------------------------------ | ------------------------------------------------------------------------------------------------------------ |
+| `None`     | do nothing                                                                                                          | ignored                                                                        | `""`                                                   | none                                                                                                         |
+| `Fake`     | a fake PowerConsumptionPredictor for test, always returns `( base_watts + requestCPUMilli / 1000 * watt_per_core )` | ignored                                                                        | `""`                                                   | none                                                                                                         |
+| `MLServer` | WAO power model with MLServer REST API                                                                              | MLServer instance in format `{scheme+server}/v2/{model}/versions/{version}/**` | `http://hogehoge:8080/v2/model1/versions/v0.1.0/infer` | `NodeStatusCPUUsage`, `NodeStatusLogicalProcessors`, `NodeStatusAmbientTemp`, `NodeStatusStaticPressureDiff` |
+
 
 ### Uninstallation
 
