@@ -64,7 +64,7 @@ func (r *Estimator) MergeNodeConfig(nodeName string) *NodeConfig {
 	v, ok := r.Spec.NodeConfigOverrides[nodeName]
 
 	// no overrides
-	if !ok {
+	if !ok || v == nil {
 		return merged
 	}
 
