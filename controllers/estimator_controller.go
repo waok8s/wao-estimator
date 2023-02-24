@@ -128,11 +128,8 @@ func (r *EstimatorReconciler) reconcileEstimatorNodes(ctx context.Context, estCo
 		switch nmType {
 		case v1beta1.NodeMonitorTypeNone:
 			// return an empty NodeStatus to suppress warnings
-			// NOTE: A Node has an empty NodeStatus by default so this does not change anything.
-			//       i.e. Predictors should validate the given NodeStatus anyway.
-			nm = &estimator.FakeNodeMonitor{FetchFunc: func(context.Context) (estimator.NodeStatus, error) {
-				return estimator.NodeStatus{}, nil
-			}}
+			// NOTE: A Node has an empty NodeStatus by default so this does not change anything, so Predictors should validate the given NodeStatus anyway.
+			nm = &estimator.FakeNodeMonitor{FetchFunc: func(ctx context.Context, base *estimator.NodeStatus) error { return nil }}
 		case v1beta1.NodeMonitorTypeFake:
 			nm = setupFakeNodeMonitor(r.Client, client.ObjectKeyFromObject(&node))
 		case v1beta1.NodeMonitorTypeIPMIExporter:
@@ -151,7 +148,7 @@ func (r *EstimatorReconciler) reconcileEstimatorNodes(ctx context.Context, estCo
 		case v1beta1.PowerConsumptionPredictorTypeNone:
 			// return +Inf to suppress warnings
 			// NOTE: Estimator fills failed predictions with +Inf so this only suppresses warnings.
-			pcp = &estimator.FakePCPredictor{PredictFunc: func(context.Context, int, estimator.NodeStatus) (float64, error) {
+			pcp = &estimator.FakePCPredictor{PredictFunc: func(context.Context, int, *estimator.NodeStatus) (float64, error) {
 				return math.Inf(1), nil
 			}}
 		case v1beta1.PowerConsumptionPredictorTypeFake:
@@ -165,7 +162,7 @@ func (r *EstimatorReconciler) reconcileEstimatorNodes(ctx context.Context, estCo
 		}
 		lg.Info(fmt.Sprintf("spec.powerConsumptionPredictor.Type=%v pcp=%+v", pcpType, pcp))
 
-		estNode := estimator.NewNode(name, nm, estConf.Spec.NodeMonitor.RefreshInterval.Duration, pcp)
+		estNode := estimator.NewNode(name, []estimator.NodeMonitor{nm}, estConf.Spec.NodeMonitor.RefreshInterval.Duration, pcp)
 		estNodeList = append(estNodeList, estNode)
 	}
 
