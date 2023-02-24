@@ -313,7 +313,7 @@ var _ = Describe("Node/Nodes", func() {
 	nm0 := &estimator.FakeNodeMonitor{
 		FetchFunc: func(ctx context.Context, base *estimator.NodeStatus) error {
 			time.Sleep(50 * time.Millisecond)
-			setNodeStatus(base, 10.0, 20.0, 0.0)
+			setNodeStatus(base, 10.0, 20.0)
 			return nil
 		},
 	}
@@ -348,7 +348,7 @@ var _ = Describe("Node/Nodes", func() {
 		return n0.GetStatus().Timestamp()
 	}).ShouldNot(Equal(time.Time{}))
 
-	watt, err := n0.Predict(ctx, 2000, setNodeStatus(nil, 30.0, 20.0, 0.0))
+	watt, err := n0.Predict(ctx, 2000, setNodeStatus(nil, 30.0, 20.0))
 	Expect(err).NotTo(HaveOccurred())
 	Expect(watt).To(Equal(70.0))
 
@@ -366,16 +366,15 @@ var _ = Describe("Node/Nodes", func() {
 		return n1.GetStatus().Timestamp()
 	}).ShouldNot(Equal(time.Time{}))
 
-	_, err = n1.Predict(ctx, 2000, setNodeStatus(nil, 30.0, 20.0, 0.0))
+	_, err = n1.Predict(ctx, 2000, setNodeStatus(nil, 30.0, 20.0))
 	Expect(err).To(HaveOccurred())
 })
 
-func setNodeStatus(base *estimator.NodeStatus, cpuUsage, ambientTemp, staticPressureDiff float64) *estimator.NodeStatus {
+func setNodeStatus(base *estimator.NodeStatus, cpuUsage, ambientTemp float64) *estimator.NodeStatus {
 	if base == nil {
 		base = estimator.NewNodeStatus()
 	}
 	estimator.NodeStatusSetCPUUsage(base, cpuUsage)
 	estimator.NodeStatusSetAmbientTemp(base, ambientTemp)
-	estimator.NodeStatusSetStaticPressureDiff(base, staticPressureDiff)
 	return base
 }

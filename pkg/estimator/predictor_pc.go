@@ -35,14 +35,3 @@ func PredictPCFnDummy(_ context.Context, mcpu int, status *NodeStatus) (float64,
 	w := float64(mcpu)/100 + at + cu
 	return w, nil
 }
-
-type MLServerPCPredictor struct {
-	// TODO
-}
-
-var _ PowerConsumptionPredictor = (*MLServerPCPredictor)(nil)
-
-func (p *MLServerPCPredictor) Predict(ctx context.Context, requestCPUMilli int, status *NodeStatus) (watt float64, err error) {
-	// TODO
-	return 0.0, fmt.Errorf("not yet implemented (%w)", ErrPCPredictor)
-}

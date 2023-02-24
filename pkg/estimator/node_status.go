@@ -88,3 +88,21 @@ func NodeStatusGetStaticPressureDiff(s *NodeStatus) (float64, error) {
 	}
 	return vv, nil
 }
+
+const NodeStatusLogicalProcessors NodeStatusKey = "logicalProcessors"
+
+func NodeStatusSetLogicalProcessors(s *NodeStatus, num int) {
+	s.Set(NodeStatusLogicalProcessors, strconv.Itoa(num))
+}
+
+func NodeStatusGetLogicalProcessors(s *NodeStatus) (int, error) {
+	v, ok := s.Get(NodeStatusLogicalProcessors)
+	if !ok {
+		return 0, fmt.Errorf("key=%+v not found", NodeStatusLogicalProcessors)
+	}
+	vv, err := strconv.Atoi(v)
+	if err != nil {
+		return 0, err
+	}
+	return vv, nil
+}
