@@ -2,136 +2,9 @@ package estimator
 
 import (
 	"context"
-	"reflect"
 	"testing"
 	"time"
 )
-
-func TestNodeStatus_AverageCPUUsage(t *testing.T) {
-	type fields struct {
-		CPUSockets     int
-		CPUCores       int
-		CPUCoreUsages  [][]float64
-		CPUCoreTemps   [][]float64
-		AmbientSensors int
-		AmbientTemps   []float64
-	}
-	tests := []struct {
-		name    string
-		fields  fields
-		want    float64
-		wantErr bool
-	}{
-		{"err_nil", fields{0, 0, nil, nil, 0, nil}, 0.0, true},
-		{"err_0cpu0core", fields{0, 0, [][]float64{}, nil, 0, nil}, 0.0, true},
-		{"1cpu8core", fields{0, 0, [][]float64{{20.0, 20.0, 30.0, 30.0, 40.0, 40.0, 50.0, 50.0}}, nil, 0, nil}, 35.0, false},
-		{"4cpu8core", fields{0, 0, [][]float64{{20.0, 20.0}, {30.0, 30.0}, {40.0, 40.0}, {50.0, 50.0}}, nil, 0, nil}, 35.0, false},
-	}
-	for _, tt := range tests {
-		t.Run(tt.name, func(t *testing.T) {
-			s := &NodeStatus{
-				CPUSockets:     tt.fields.CPUSockets,
-				CPUCores:       tt.fields.CPUCores,
-				CPUUsages:      tt.fields.CPUCoreUsages,
-				CPUTemps:       tt.fields.CPUCoreTemps,
-				AmbientSensors: tt.fields.AmbientSensors,
-				AmbientTemps:   tt.fields.AmbientTemps,
-			}
-			got, err := s.AverageCPUUsage()
-			if (err != nil) != tt.wantErr {
-				t.Errorf("NodeStatus.AverageCPUUsage() error = %v, wantErr %v", err, tt.wantErr)
-				return
-			}
-			if got != tt.want {
-				t.Errorf("NodeStatus.AverageCPUUsage() = %v, want %v", got, tt.want)
-			}
-		})
-	}
-}
-
-func TestNodeStatus_AverageCPUTemp(t *testing.T) {
-	type fields struct {
-		CPUSockets     int
-		CPUCores       int
-		CPUCoreUsages  [][]float64
-		CPUCoreTemps   [][]float64
-		AmbientSensors int
-		AmbientTemps   []float64
-	}
-	tests := []struct {
-		name    string
-		fields  fields
-		want    float64
-		wantErr bool
-	}{
-		{"err_nil", fields{0, 0, nil, nil, 0, nil}, 0.0, true},
-		{"err_0cpu0core", fields{0, 0, nil, [][]float64{}, 0, nil}, 0.0, true},
-		{"1cpu8core", fields{0, 0, nil, [][]float64{{20.0, 20.0, 30.0, 30.0, 40.0, 40.0, 50.0, 50.0}}, 0, nil}, 35.0, false},
-		{"4cpu8core", fields{0, 0, nil, [][]float64{{20.0, 20.0}, {30.0, 30.0}, {40.0, 40.0}, {50.0, 50.0}}, 0, nil}, 35.0, false},
-	}
-	for _, tt := range tests {
-		t.Run(tt.name, func(t *testing.T) {
-			s := &NodeStatus{
-				CPUSockets:     tt.fields.CPUSockets,
-				CPUCores:       tt.fields.CPUCores,
-				CPUUsages:      tt.fields.CPUCoreUsages,
-				CPUTemps:       tt.fields.CPUCoreTemps,
-				AmbientSensors: tt.fields.AmbientSensors,
-				AmbientTemps:   tt.fields.AmbientTemps,
-			}
-			got, err := s.AverageCPUTemp()
-			if (err != nil) != tt.wantErr {
-				t.Errorf("NodeStatus.AverageCPUTemp() error = %v, wantErr %v", err, tt.wantErr)
-				return
-			}
-			if got != tt.want {
-				t.Errorf("NodeStatus.AverageCPUTemp() = %v, want %v", got, tt.want)
-			}
-		})
-	}
-}
-
-func TestNodeStatus_AverageAmbientTemp(t *testing.T) {
-	type fields struct {
-		CPUSockets     int
-		CPUCores       int
-		CPUCoreUsages  [][]float64
-		CPUCoreTemps   [][]float64
-		AmbientSensors int
-		AmbientTemps   []float64
-	}
-	tests := []struct {
-		name    string
-		fields  fields
-		want    float64
-		wantErr bool
-	}{
-		{"err_nil", fields{0, 0, nil, nil, 0, nil}, 0.0, true},
-		{"err_0sensor", fields{0, 0, nil, nil, 0, []float64{}}, 0.0, true},
-		{"1sensor", fields{0, 0, nil, nil, 0, []float64{35.0}}, 35.0, false},
-		{"4sensor", fields{0, 0, nil, nil, 0, []float64{20.0, 30.0, 40.0, 50.0}}, 35.0, false},
-	}
-	for _, tt := range tests {
-		t.Run(tt.name, func(t *testing.T) {
-			s := &NodeStatus{
-				CPUSockets:     tt.fields.CPUSockets,
-				CPUCores:       tt.fields.CPUCores,
-				CPUUsages:      tt.fields.CPUCoreUsages,
-				CPUTemps:       tt.fields.CPUCoreTemps,
-				AmbientSensors: tt.fields.AmbientSensors,
-				AmbientTemps:   tt.fields.AmbientTemps,
-			}
-			got, err := s.AverageAmbientTemp()
-			if (err != nil) != tt.wantErr {
-				t.Errorf("NodeStatus.AverageAmbientTemp() error = %v, wantErr %v", err, tt.wantErr)
-				return
-			}
-			if got != tt.want {
-				t.Errorf("NodeStatus.AverageAmbientTemp() = %v, want %v", got, tt.want)
-			}
-		})
-	}
-}
 
 func TestNodes_Len(t *testing.T) {
 	type op int
@@ -193,34 +66,47 @@ func TestNodes_Len(t *testing.T) {
 }
 
 func TestNode_FetchStatus(t *testing.T) {
+	testNodeStatus := NewNodeStatus()
 	tests := []struct {
 		name    string
 		node    *Node
-		want    NodeStatus
+		want    *NodeStatus
 		wantErr bool
 	}{
 		{"nm==nil", &Node{
-			Name:    "n1",
-			monitor: nil,
-		}, NodeStatus{}, true},
+			Name:     "n1",
+			monitors: nil,
+		}, nil, false},
 		{"nm!=nil", &Node{
-			Name:    "n1",
-			monitor: &FakeNodeMonitor{FetchFunc: func(context.Context) (NodeStatus, error) { return testNS1, nil }},
-		}, testNS1, false},
-		{"failed", &Node{
-			Name:    "n1",
-			monitor: &FakeNodeMonitor{FetchFunc: func(context.Context) (NodeStatus, error) { return NodeStatus{}, ErrNodeMonitor }},
-		}, NodeStatus{}, true},
+			Name: "n1",
+			monitors: []NodeMonitor{
+				&FakeNodeMonitor{FetchFunc: func(context.Context, *NodeStatus) error { return nil }},
+			},
+		}, testNodeStatus, false},
+		{"all ok", &Node{
+			Name: "n1",
+			monitors: []NodeMonitor{
+				&FakeNodeMonitor{FetchFunc: func(context.Context, *NodeStatus) error { return nil }},
+				&FakeNodeMonitor{FetchFunc: func(context.Context, *NodeStatus) error { return nil }},
+				&FakeNodeMonitor{FetchFunc: func(context.Context, *NodeStatus) error { return nil }},
+			},
+		}, nil, false},
+		{"some NodeMonitor return error", &Node{
+			Name: "n1",
+			monitors: []NodeMonitor{
+				&FakeNodeMonitor{FetchFunc: func(context.Context, *NodeStatus) error { return nil }},
+				&FakeNodeMonitor{FetchFunc: func(context.Context, *NodeStatus) error { return ErrNodeMonitor }},
+				&FakeNodeMonitor{FetchFunc: func(context.Context, *NodeStatus) error { return ErrNodeMonitor }},
+				&FakeNodeMonitor{FetchFunc: func(context.Context, *NodeStatus) error { return nil }},
+			},
+		}, nil, false},
 	}
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
-			got, err := tt.node.FetchStatus(context.Background())
+			err := tt.node.FetchStatus(context.Background(), testNodeStatus)
 			if (err != nil) != tt.wantErr {
 				t.Errorf("Node.FetchStatus() error = %v, wantErr %v", err, tt.wantErr)
 				return
-			}
-			if !reflect.DeepEqual(got, tt.want) {
-				t.Errorf("Node.FetchStatus() = %v, want %v", got, tt.want)
 			}
 		})
 	}
@@ -229,7 +115,7 @@ func TestNode_FetchStatus(t *testing.T) {
 func TestNode_Predict(t *testing.T) {
 	type args struct {
 		requestCPUMilli int
-		status          NodeStatus
+		status          *NodeStatus
 	}
 	tests := []struct {
 		name     string
@@ -241,15 +127,15 @@ func TestNode_Predict(t *testing.T) {
 		{"pcp==nil", &Node{
 			Name:        "n1",
 			pcPredictor: nil,
-		}, args{2000, testNS1}, 0.0, true},
+		}, args{2000, newNodeStatus(20.0, 20.0, 0.0)}, 0.0, true},
 		{"pcp!=nil", &Node{
 			Name:        "n1",
 			pcPredictor: &FakePCPredictor{PredictFunc: PredictPCFnDummy},
-		}, args{2000, testNS1}, 50.0, false},
+		}, args{2000, newNodeStatus(20.0, 10.0, 0.0)}, 50.0, false},
 		{"failed", &Node{
 			Name:        "n1",
-			pcPredictor: &FakePCPredictor{PredictFunc: func(context.Context, int, NodeStatus) (float64, error) { return 0.0, ErrPCPredictor }},
-		}, args{2000, testNS1}, 0.0, true},
+			pcPredictor: &FakePCPredictor{PredictFunc: func(context.Context, int, *NodeStatus) (float64, error) { return 0.0, ErrPCPredictor }},
+		}, args{2000, newNodeStatus(20.0, 20.0, 0.0)}, 0.0, true},
 	}
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {

@@ -38,92 +38,67 @@ spec:
           spec:
             description: EstimatorSpec defines the desired state of Estimator
             properties:
-              nodeMonitor:
+              defaultNodeConfig:
                 properties:
-                  ipmiExporter:
+                  nodeMonitor:
                     properties:
-                      endpoint:
-                        properties:
-                          default:
-                            type: string
-                          override:
-                            properties:
-                              label:
-                                type: string
-                            type: object
-                        required:
-                        - default
-                        type: object
-                    required:
-                    - endpoint
-                    type: object
-                  redfish:
-                    properties:
-                      endpoint:
-                        properties:
-                          default:
-                            type: string
-                          override:
-                            properties:
-                              label:
-                                type: string
-                            type: object
-                        required:
-                        - default
-                        type: object
-                    required:
-                    - endpoint
-                    type: object
-                  refreshInterval:
-                    type: string
-                  type:
-                    properties:
-                      default:
+                      agents:
+                        items:
+                          properties:
+                            endpoint:
+                              type: string
+                            type:
+                              type: string
+                          required:
+                          - type
+                          type: object
+                        type: array
+                      refreshInterval:
                         type: string
-                      override:
-                        properties:
-                          label:
-                            type: string
-                        type: object
                     required:
-                    - default
+                    - agents
                     type: object
-                required:
-                - type
+                  powerConsumptionPredictor:
+                    properties:
+                      endpoint:
+                        type: string
+                      type:
+                        type: string
+                    required:
+                    - type
+                    type: object
                 type: object
-              powerConsumptionPredictor:
-                properties:
-                  mlServer:
-                    properties:
-                      endpoint:
-                        properties:
-                          default:
-                            type: string
-                          override:
+              nodeConfigOverrides:
+                additionalProperties:
+                  properties:
+                    nodeMonitor:
+                      properties:
+                        agents:
+                          items:
                             properties:
-                              label:
+                              endpoint:
                                 type: string
+                              type:
+                                type: string
+                            required:
+                            - type
                             type: object
-                        required:
-                        - default
-                        type: object
-                    required:
-                    - endpoint
-                    type: object
-                  type:
-                    properties:
-                      default:
-                        type: string
-                      override:
-                        properties:
-                          label:
-                            type: string
-                        type: object
-                    required:
-                    - default
-                    type: object
-                required:
-                - type
+                          type: array
+                        refreshInterval:
+                          type: string
+                      required:
+                      - agents
+                      type: object
+                    powerConsumptionPredictor:
+                      properties:
+                        endpoint:
+                          type: string
+                        type:
+                          type: string
+                      required:
+                      - type
+                      type: object
+                  type: object
                 type: object
             type: object
           status:

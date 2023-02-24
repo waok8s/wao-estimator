@@ -4,10 +4,9 @@ metadata:
   namespace: default
   name: default
 spec:
-  nodeMonitor:
-    refreshInterval: 30s
-    type:
-      default: None
-  powerConsumptionPredictor:
-    type:
-      default: None
+  defaultNodeConfig:
+    nodeMonitor:
+      refreshInterval: 30s
+      agents: []
+    powerConsumptionPredictor:
+      type: None

@@ -82,17 +82,16 @@ var (
 			Name:      "hoge",
 		},
 		Spec: v1beta1.EstimatorSpec{
-			NodeMonitor: &v1beta1.NodeMonitor{
-				Type: v1beta1.Field{
-					Default: v1beta1.NodeMonitorTypeNone,
+			DefaultNodeConfig: &v1beta1.NodeConfig{
+				NodeMonitor: &v1beta1.NodeMonitor{
+					RefreshInterval: &metav1.Duration{
+						Duration: v1beta1.DefaultNodeMonitorRefreshInterval,
+					},
+					Agents: []v1beta1.NodeMonitorAgent{},
 				},
-				RefreshInterval: &metav1.Duration{
-					Duration: v1beta1.DefaultNodeMonitorRefreshInterval,
-				},
-			},
-			PowerConsumptionPredictor: &v1beta1.PowerConsumptionPredictor{
-				Type: v1beta1.Field{
-					Default: v1beta1.PowerConsumptionPredictorTypeNone,
+				PowerConsumptionPredictor: &v1beta1.PowerConsumptionPredictor{
+					Type:     v1beta1.PowerConsumptionPredictorTypeNone,
+					Endpoint: "",
 				},
 			},
 		},
@@ -114,22 +113,33 @@ var (
 			Name:      "default",
 		},
 		Spec: v1beta1.EstimatorSpec{
-			NodeMonitor: &v1beta1.NodeMonitor{
-				Type: v1beta1.Field{
-					Default: v1beta1.NodeMonitorTypeNone,
-					Override: &v1beta1.FieldRef{
-						Label: &testLabelNodeMonitor,
+			DefaultNodeConfig: &v1beta1.NodeConfig{
+				NodeMonitor: &v1beta1.NodeMonitor{
+					RefreshInterval: &metav1.Duration{
+						Duration: v1beta1.DefaultNodeMonitorRefreshInterval,
 					},
+					Agents: []v1beta1.NodeMonitorAgent{},
 				},
-				RefreshInterval: &metav1.Duration{
-					Duration: v1beta1.DefaultNodeMonitorRefreshInterval,
+				PowerConsumptionPredictor: &v1beta1.PowerConsumptionPredictor{
+					Type:     v1beta1.PowerConsumptionPredictorTypeNone,
+					Endpoint: "",
 				},
 			},
-			PowerConsumptionPredictor: &v1beta1.PowerConsumptionPredictor{
-				Type: v1beta1.Field{
-					Default: v1beta1.PowerConsumptionPredictorTypeNone,
-					Override: &v1beta1.FieldRef{
-						Label: &testLabelPCPredictor,
+			NodeConfigOverrides: map[string]*v1beta1.NodeConfig{
+				"wao-estimator-test-worker": &v1beta1.NodeConfig{
+					NodeMonitor: &v1beta1.NodeMonitor{
+						Agents: []v1beta1.NodeMonitorAgent{{Type: v1beta1.NodeMonitorTypeFake}},
+					},
+					PowerConsumptionPredictor: &v1beta1.PowerConsumptionPredictor{
+						Type: v1beta1.PowerConsumptionPredictorTypeFake,
+					},
+				},
+				"wao-estimator-test-worker2": &v1beta1.NodeConfig{
+					NodeMonitor: &v1beta1.NodeMonitor{
+						Agents: []v1beta1.NodeMonitorAgent{{Type: v1beta1.NodeMonitorTypeFake}},
+					},
+					PowerConsumptionPredictor: &v1beta1.PowerConsumptionPredictor{
+						Type: v1beta1.PowerConsumptionPredictorTypeFake,
 					},
 				},
 			},
@@ -236,9 +246,9 @@ var _ = Describe("Estimator controller", func() {
 		Eventually(func() error {
 			return k8sClient.Get(ctx, client.ObjectKeyFromObject(&ec1), &ec1)
 		}).Should(Succeed())
-		Expect(ec1.Spec.NodeMonitor.RefreshInterval.Duration).To(Equal(v1beta1.DefaultNodeMonitorRefreshInterval))
+		Expect(ec1.Spec.DefaultNodeConfig.NodeMonitor.RefreshInterval.Duration).To(Equal(v1beta1.DefaultNodeMonitorRefreshInterval))
 		op, err := ctrl.CreateOrUpdate(ctx, k8sClient, &ec1, func() error {
-			ec1.Spec.NodeMonitor.RefreshInterval = &metav1.Duration{Duration: time.Second}
+			ec1.Spec.DefaultNodeConfig.NodeMonitor.RefreshInterval = &metav1.Duration{Duration: time.Second}
 			return nil
 		})
 		Expect(op).To(Equal(controllerutil.OperationResultUpdated))
@@ -248,9 +258,9 @@ var _ = Describe("Estimator controller", func() {
 		Eventually(func() error {
 			return k8sClient.Get(ctx, client.ObjectKeyFromObject(&ec1), &ec1)
 		}).Should(Succeed())
-		Expect(ec1.Spec.NodeMonitor.RefreshInterval.Duration).To(Equal(time.Second))
+		Expect(ec1.Spec.DefaultNodeConfig.NodeMonitor.RefreshInterval.Duration).To(Equal(time.Second))
 		op, err = ctrl.CreateOrUpdate(ctx, k8sClient, &ec1, func() error {
-			ec1.Spec.NodeMonitor.RefreshInterval = &metav1.Duration{Duration: v1beta1.DefaultNodeMonitorRefreshInterval}
+			ec1.Spec.DefaultNodeConfig.NodeMonitor.RefreshInterval = &metav1.Duration{Duration: v1beta1.DefaultNodeMonitorRefreshInterval}
 			return nil
 		})
 		Expect(op).To(Equal(controllerutil.OperationResultUpdated))

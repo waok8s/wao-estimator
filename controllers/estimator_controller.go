@@ -122,65 +122,53 @@ func (r *EstimatorReconciler) reconcileEstimatorNodes(ctx context.Context, estCo
 	for _, node := range nodeList.Items {
 		name := node.Name
 
-		// spec.nodeMonitor
-		var nm estimator.NodeMonitor
-		nmType := v1beta1.NodeMonitorType(getFieldValue(estConf.Spec.NodeMonitor.Type, &node))
-		switch nmType {
-		case v1beta1.NodeMonitorTypeNone:
-			// return an empty NodeStatus to suppress warnings
-			// NOTE: A Node has an empty NodeStatus by default so this does not change anything.
-			//       i.e. Predictors should validate the given NodeStatus anyway.
-			nm = &estimator.FakeNodeMonitor{FetchFunc: func(context.Context) (estimator.NodeStatus, error) {
-				return estimator.NodeStatus{}, nil
-			}}
-		case v1beta1.NodeMonitorTypeFake:
-			nm = setupFakeNodeMonitor(r.Client, client.ObjectKeyFromObject(&node))
-		case v1beta1.NodeMonitorTypeIPMIExporter:
-			lg.Info(fmt.Sprintf("NodeMonitorType=%v is not implemented", nmType))
-		case v1beta1.NodeMonitorTypeRedfish:
-			lg.Info(fmt.Sprintf("NodeMonitorType=%v is not implemented", nmType))
-		default:
-			lg.Info(fmt.Sprintf("NodeMonitorType=%v is not defined", nmType))
-		}
-		lg.Info(fmt.Sprintf("spec.nodeMonitor.Type=%v nm=%+v", nmType, nm))
+		nodeConfig := estConf.MergeNodeConfig(name)
 
-		// spec.powerConsumptionPredictor
+		// NodeMonitor
+		var nms []estimator.NodeMonitor
+		for i, nma := range nodeConfig.NodeMonitor.Agents {
+			var nm estimator.NodeMonitor
+			nmType := v1beta1.NodeMonitorType(nma.Type)
+			switch nmType {
+			case v1beta1.NodeMonitorTypeNone:
+				// return an empty NodeStatus to suppress warnings
+				// NOTE: A Node has an empty NodeStatus by default so this does not change anything, so Predictors should validate the given NodeStatus anyway.
+				nm = &estimator.FakeNodeMonitor{FetchFunc: func(ctx context.Context, base *estimator.NodeStatus) error { return nil }}
+			case v1beta1.NodeMonitorTypeFake:
+				nm = setupFakeNodeMonitor(r.Client, client.ObjectKeyFromObject(&node))
+			case v1beta1.NodeMonitorTypeIPMIExporter:
+				lg.Info(fmt.Sprintf("NodeMonitorType=%v is not implemented", nmType))
+			case v1beta1.NodeMonitorTypeRedfish:
+				lg.Info(fmt.Sprintf("NodeMonitorType=%v is not implemented", nmType))
+			default:
+				lg.Info(fmt.Sprintf("NodeMonitorType=%v is not defined", nmType))
+			}
+			lg.Info(fmt.Sprintf("node=%v nodeMonitor.Agents[%d].Type=%v nm=%+v", name, i, nmType, nm))
+			nms = append(nms, nm)
+		}
+
+		// PowerConsumptionPredictor
 		var pcp estimator.PowerConsumptionPredictor
-		pcpType := v1beta1.PowerConsumptionPredictorType(getFieldValue(estConf.Spec.PowerConsumptionPredictor.Type, &node))
+		pcpType := v1beta1.PowerConsumptionPredictorType(nodeConfig.PowerConsumptionPredictor.Type)
 		switch pcpType {
 		case v1beta1.PowerConsumptionPredictorTypeNone:
 			// return +Inf to suppress warnings
 			// NOTE: Estimator fills failed predictions with +Inf so this only suppresses warnings.
-			pcp = &estimator.FakePCPredictor{PredictFunc: func(context.Context, int, estimator.NodeStatus) (float64, error) {
+			pcp = &estimator.FakePCPredictor{PredictFunc: func(context.Context, int, *estimator.NodeStatus) (float64, error) {
 				return math.Inf(1), nil
 			}}
 		case v1beta1.PowerConsumptionPredictorTypeFake:
 			pcp = setupFakePCPredictor(r.Client, client.ObjectKeyFromObject(&node))
 		case v1beta1.PowerConsumptionPredictorTypeMLServer:
 			lg.Info(fmt.Sprintf("PowerConsumptionPredictorType=%v is not implemented", pcpType))
-		case v1beta1.PowerConsumptionPredictorTypeTFServing:
-			lg.Info(fmt.Sprintf("PowerConsumptionPredictorType=%v is not implemented", pcpType))
 		default:
 			lg.Info(fmt.Sprintf("PowerConsumptionPredictorType=%v is not defined", pcpType))
 		}
-		lg.Info(fmt.Sprintf("spec.powerConsumptionPredictor.Type=%v pcp=%+v", pcpType, pcp))
+		lg.Info(fmt.Sprintf("node=%v powerConsumptionPredictor.Type=%v pcp=%+v", name, pcpType, pcp))
 
-		estNode := estimator.NewNode(name, nm, estConf.Spec.NodeMonitor.RefreshInterval.Duration, pcp)
+		estNode := estimator.NewNode(name, nms, nodeConfig.NodeMonitor.RefreshInterval.Duration, pcp)
 		estNodeList = append(estNodeList, estNode)
 	}
 
 	return estNodeList, nil
-}
-
-func getFieldValue(f v1beta1.Field, node *corev1.Node) string {
-	switch {
-	case f.Override != nil && f.Override.Label != nil && node != nil:
-		v, ok := node.Labels[*f.Override.Label]
-		if !ok {
-			return f.Default
-		}
-		return v
-	default:
-		return f.Default
-	}
 }

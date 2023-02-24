@@ -111,12 +111,11 @@ metadata:
   namespace: default
   name: default
 spec:
-  nodeMonitor:
-    type:
-      default: None
-  powerConsumptionPredictor:
-    type:
-      default: None
+  defaultNodeConfig:
+    nodeMonitor:
+      agents: []
+    powerConsumptionPredictor:
+      type: None
 ```
 
 The namespace and name will affect the URL of the API endpoint.
