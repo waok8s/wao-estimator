@@ -28,6 +28,10 @@ func (n *Node) FetchStatus(ctx context.Context, base *NodeStatus) error {
 		base = NewNodeStatus()
 	}
 	for i, nm := range n.monitors {
+		if nm == nil {
+			lg.Warn().Msgf("FetchStatus failed as NodeMonitor[%d] is nil", i)
+			continue
+		}
 		err := nm.FetchStatus(ctx, base)
 		if err != nil {
 			lg.Warn().Msgf("FetchStatus failed NodeMonitor[%d] err=%v", i, err)

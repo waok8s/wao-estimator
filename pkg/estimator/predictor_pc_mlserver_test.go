@@ -114,3 +114,52 @@ func TestMLServerPCPredictor_getURLV2Infer(t *testing.T) {
 		})
 	}
 }
+
+func TestNewMLServerPCPredictorFromURL(t *testing.T) {
+	type args struct {
+		endpoint string
+	}
+	tests := []struct {
+		name    string
+		args    args
+		want    *MLServerPCPredictor
+		wantErr bool
+	}{
+		{"normal", args{endpoint: "http://localhost:8080/v2/models/model1/versions/v0.1.0/infer"}, &MLServerPCPredictor{
+			Server:  "http://localhost:8080",
+			Model:   "model1",
+			Version: "v0.1.0",
+		}, false},
+		{"normal2", args{endpoint: "http://localhost:8080/v2/models/model1/versions/v0.1.0"}, &MLServerPCPredictor{
+			Server:  "http://localhost:8080",
+			Model:   "model1",
+			Version: "v0.1.0",
+		}, false},
+		{"normal3", args{endpoint: "http://localhost:8080/v2/models/model1/versions/v0.1.0/"}, &MLServerPCPredictor{
+			Server:  "http://localhost:8080",
+			Model:   "model1",
+			Version: "v0.1.0",
+		}, false},
+		{"https", args{endpoint: "https://10.0.0.1/v2/models/model2/versions/v0.2.0/"}, &MLServerPCPredictor{
+			Server:  "https://10.0.0.1",
+			Model:   "model2",
+			Version: "v0.2.0",
+		}, false},
+		{"no_scheme", args{endpoint: "10.0.0.1/v2/models/model2/versions/v0.2.0/"}, nil,
+			true},
+		{"wrong_url", args{endpoint: "http://localhost:8080/v2/model1/versions/v0.1.0/"}, nil,
+			true},
+	}
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			got, err := NewMLServerPCPredictorFromURL(tt.args.endpoint)
+			if (err != nil) != tt.wantErr {
+				t.Errorf("NewMLServerPCPredictorFromURL() error = %v, wantErr %v", err, tt.wantErr)
+				return
+			}
+			if !reflect.DeepEqual(got, tt.want) {
+				t.Errorf("NewMLServerPCPredictorFromURL() = %v, want %v", got, tt.want)
+			}
+		})
+	}
+}

@@ -26,7 +26,7 @@ func main() {
 	ambientTemp := 22.0
 	staticPressureDiff := 0.2
 
-	pcp := estimator.MLServerPCPredictor{Server: server, Model: model, Version: version}
+	pcp := &estimator.MLServerPCPredictor{Server: server, Model: model, Version: version}
 	watt, err := pcp.POSTPredictRequest(context.Background(), cpuUsage, ambientTemp, staticPressureDiff)
 	if err != nil {
 		fmt.Fprintf(os.Stderr, "%v\n", err)
