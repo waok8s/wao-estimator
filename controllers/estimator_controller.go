@@ -136,6 +136,12 @@ func (r *EstimatorReconciler) reconcileEstimatorNodes(ctx context.Context, estCo
 				nm = &estimator.FakeNodeMonitor{FetchFunc: func(ctx context.Context, base *estimator.NodeStatus) error { return nil }}
 			case v1beta1.NodeMonitorTypeFake:
 				nm = setupFakeNodeMonitor(r.Client, client.ObjectKeyFromObject(&node))
+			case v1beta1.NodeMonitorTypeDifferentialPressureAPI:
+				var err error
+				nm, err = estimator.NewDifferentialPressureNodeMonitorFromURL(nma.Endpoint)
+				if err != nil {
+					lg.Error(err, fmt.Sprintf("node=%v NodeMonitorType=%v could not initialize: %v", name, nmType, err))
+				}
 			case v1beta1.NodeMonitorTypeIPMIExporter:
 				lg.Info(fmt.Sprintf("NodeMonitorType=%v is not implemented", nmType))
 			case v1beta1.NodeMonitorTypeRedfish:
