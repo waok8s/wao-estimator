@@ -160,7 +160,12 @@ func (r *EstimatorReconciler) reconcileEstimatorNodes(ctx context.Context, estCo
 		case v1beta1.PowerConsumptionPredictorTypeFake:
 			pcp = setupFakePCPredictor(r.Client, client.ObjectKeyFromObject(&node))
 		case v1beta1.PowerConsumptionPredictorTypeMLServer:
-			lg.Info(fmt.Sprintf("PowerConsumptionPredictorType=%v is not implemented", pcpType))
+			v, err := estimator.NewMLServerPCPredictorFromURL(nodeConfig.PowerConsumptionPredictor.Endpoint)
+			if err != nil {
+				lg.Error(err, fmt.Sprintf("node=%v PowerConsumptionPredictorType=%v wrong endpoint url specified: %v", name, pcpType, err))
+			} else {
+				pcp = v
+			}
 		default:
 			lg.Info(fmt.Sprintf("PowerConsumptionPredictorType=%v is not defined", pcpType))
 		}

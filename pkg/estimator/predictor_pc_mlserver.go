@@ -8,6 +8,7 @@ import (
 	"math"
 	"net/http"
 	"net/url"
+	"strings"
 
 	http2curl "moul.io/http2curl/v2"
 )
@@ -25,6 +26,26 @@ type MLServerPCPredictor struct {
 }
 
 var _ PowerConsumptionPredictor = (*MLServerPCPredictor)(nil)
+
+// NewMLServerPCPredictorFromURL parses the given endpoint URL.
+//
+// Format: {Server}/v2/{Model}/versions/{Version}/**
+// Example: http://hogehoge:8080/v2/models/model1/versions/v0.1.0/infer -> &{Server: "http://hogehoge:8080", Model: "model1", Version: "v0.1.0"}
+func NewMLServerPCPredictorFromURL(endpoint string) (*MLServerPCPredictor, error) {
+	parsedURL, err := url.ParseRequestURI(endpoint)
+	if err != nil {
+		return nil, fmt.Errorf("could not parse MLServer endpoint URL %w: %v", ErrPCPredictor, err)
+	}
+	ss := strings.Split(parsedURL.Path, "/") // "/v2/models/model1/versions/v0.1.0/infer" -> ["", "v2", "models", "model1", "versions", "v0.1.0", "infer"]
+	if len(ss) < 6 {
+		return nil, fmt.Errorf("could not parse MLServer endpoint URL %w: url path must be in {Server}/v2/{Model}/versions/{Version}/** format", ErrPCPredictor)
+	}
+	return &MLServerPCPredictor{
+		Server:  parsedURL.Scheme + "://" + parsedURL.Host,
+		Model:   ss[3],
+		Version: ss[5],
+	}, nil
+}
 
 func (p *MLServerPCPredictor) Predict(ctx context.Context, requestCPUMilli int, status *NodeStatus) (watt float64, err error) {
 
