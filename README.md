@@ -251,7 +251,7 @@ kubectl delete -f https://github.com/Nedopro2022/wao-estimator/releases/download
 
 ## Developing
 
-This Operator uses [Kubebuilder](https://github.com/kubernetes-sigs/kubebuilder), so we basically follow the Kubebuilder way. See the [Kubebuilder Documentation](https://book.kubebuilder.io/introduction.html) for details.
+This Operator uses [Kubebuilder](https://github.com/kubernetes-sigs/kubebuilder) (v3.8.0), so we basically follow the Kubebuilder way. See the [Kubebuilder Documentation](https://book.kubebuilder.io/introduction.html) for details.
 
 ### Prerequisites
 
