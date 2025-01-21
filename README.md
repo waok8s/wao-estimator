@@ -1,3 +1,7 @@
+> [!IMPORTANT]
+> This project has been archived because [KubeFed](https://github.com/kubernetes-retired/kubefed), which this project relies on, is no longer under active development.
+> We are currently exploring alternative approaches for applying WAO in multi-cluster environments.
+
 # wao-estimator
 
 [![GitHub](https://img.shields.io/github/license/Nedopro2022/wao-estimator)](https://github.com/Nedopro2022/wao-estimator/blob/main/LICENSE)
